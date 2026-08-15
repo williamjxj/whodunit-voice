@@ -1,0 +1,163 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 1200px;
+  height: 1600px;
+  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.poster {
+  position: relative;
+  width: 1200px;
+  height: 1600px;
+  background: #0c0c10 url("background_b.png") center / cover no-repeat;
+}
+
+/* ---- 遮罩：顶部浅压暗、底部深压暗（压住桌面灯光的亮部） ---- */
+.poster::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 340px 260px at 22% 72%, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0) 70%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.18) 24%, rgba(0, 0, 0, 0) 40%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.58) 34%, rgba(0, 0, 0, 0.18) 52%, rgba(0, 0, 0, 0) 66%);
+  z-index: 1;
+}
+
+.poster > * { position: relative; z-index: 2; }
+
+/* ---- 品牌行 ---- */
+.brand {
+  margin-top: 64px;
+  text-align: center;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 6px;
+  color: #f2d9a8;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
+}
+
+/* ---- 主标题 ---- */
+.title {
+  margin-top: 34px;
+  text-align: center;
+  font-family: "Songti SC", "STSong", "Noto Serif SC", serif;
+  font-size: 96px;
+  font-weight: 700;
+  line-height: 1.18;
+  color: #fff;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.95), 0 1px 4px rgba(0, 0, 0, 0.8);
+  letter-spacing: 2px;
+}
+
+.title .q {
+  color: #e8a33d;
+  font-weight: 600;
+  margin: 0 6px;
+}
+
+/* ---- 副标题 ---- */
+.subtitle {
+  margin-top: 30px;
+  text-align: center;
+  font-size: 23px;
+  line-height: 1.75;
+  letter-spacing: 3px;
+  color: rgba(255, 255, 255, 0.88);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.95);
+}
+
+/* ---- 玩法三步 ---- */
+.steps {
+  margin-top: 728px;
+  display: flex;
+  justify-content: center;
+  gap: 72px;
+  text-align: center;
+}
+
+.step { width: 260px; }
+
+.step-icon {
+  font-size: 46px;
+  filter: grayscale(1) sepia(0.65) saturate(2.2) brightness(1.05) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.9));
+}
+
+.step-label {
+  margin-top: 14px;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  text-indent: 8px;
+  color: #f2d9a8;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.95);
+}
+
+.step-desc {
+  margin-top: 10px;
+  font-size: 17px;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.95);
+}
+
+/* ---- 案件行 ---- */
+.cases {
+  margin-top: 65px;
+  text-align: center;
+}
+
+.cases-head {
+  font-size: 18px;
+  letter-spacing: 8px;
+  text-indent: 8px;
+  color: rgba(255, 255, 255, 0.68);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.95);
+}
+
+.cases-list {
+  margin-top: 16px;
+  font-family: "Songti SC", "STSong", "Noto Serif SC", serif;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  color: #f5e6c4;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.95);
+}
+
+.cases-list .sep {
+  margin: 0 18px;
+  color: #e8a33d;
+}
+
+/* ---- 特性行 ---- */
+.features {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 16px;
+  letter-spacing: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.95);
+}
+
+/* ---- CTA ---- */
+.cta {
+  margin: 24px auto 0;
+  width: 460px;
+  padding: 20px 0;
+  text-align: center;
+  font-size: 27px;
+  font-weight: 600;
+  letter-spacing: 6px;
+  text-indent: 6px;
+  color: #1a1206;
+  background: linear-gradient(180deg, #f2c879, #e8a33d);
+  border-radius: 999px;
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
