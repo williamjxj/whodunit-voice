@@ -1,0 +1,82 @@
+[
+  {
+    "id": "clue-dagger",
+    "title": "The Dagger",
+    "description": "A stage dagger found under the berth. The blade is real - blood and hair on the edge. Its twin in the magicians' luggage is a harmless retractable prop.",
+    "source": "scene",
+    "keywords": ["dagger", "knife", "blade", "stabbed", "weapon", "wound", "killed", "murder"],
+    "hint": "Ask anyone how Aldous was killed."
+  },
+  {
+    "id": "clue-thread",
+    "title": "The Thread",
+    "description": "A length of black magician's thread tied to the door bolt, trailing out through the window. It explains how the door could be 'locked from inside' by someone outside.",
+    "source": "scene",
+    "keywords": ["thread", "lock", "locked", "bolt", "window", "magic", "inside"],
+    "hint": "Ask about the locked door or how the killer escaped."
+  },
+  {
+    "id": "clue-ledger",
+    "title": "The Conductor's Ledger",
+    "description": "Amos Grey's ticket log: Sebastian Croft's berth in Car 5 was vacant from 1:25 to 1:45. Croft claimed he was in the dining car until 1:40.",
+    "source": "amos",
+    "keywords": ["ledger", "ticket", "log", "alibi", "berth", "where", "dining car", "vacant"],
+    "hint": "Ask Amos about tickets or anyone's alibi."
+  },
+  {
+    "id": "clue-card",
+    "title": "The Torn Queen",
+    "description": "A Queen of Hearts with a torn corner, found under the berth. It matches the signature trick deck Sebastian uses - and a freshly torn Queen is tucked in his waistcoat.",
+    "source": "sebastian",
+    "keywords": ["card", "queen", "playing card", "trick", "deck", "corner", "cards"],
+    "hint": "Ask Sebastian about cards or his act."
+  },
+  {
+    "id": "clue-photo",
+    "title": "The Gala Humiliation",
+    "description": "A 1921 press photo: Aldous on stage dismantling Sebastian's escape in three minutes. The caption reads 'CROFT'S CAREER DIES IN THREE MINUTES.' On the back, in Sebastian's hand: 'One day.'",
+    "source": "sebastian",
+    "keywords": ["photo", "gala", "humiliated", "rival", "career", "grudge", "hate", "history", "apprentice"],
+    "hint": "Ask Sebastian about his history with Aldous."
+  },
+  {
+    "id": "clue-note",
+    "title": "The Note",
+    "description": "Retrieved from the floor of Sebastian's compartment: 'I know about Prague. Meet me in E at 1:30. - A.' The writing matches Aldous's hand.",
+    "source": "scene",
+    "keywords": ["note", "letter", "message", "prague", "meet", "1:30", "summons", "paper"],
+    "hint": "Ask Sebastian about any notes or messages."
+  },
+  {
+    "id": "clue-contract",
+    "title": "The Drained Accounts",
+    "description": "Henri's investment contract and bank statements: $2M in production funds moved to Aldous's private account over eight weeks. A photo shows Aldous with a false passport under the name 'Peter Arno.'",
+    "source": "henri",
+    "keywords": ["money", "investment", "contract", "accounts", "fraud", "passport", "two million", "funds", "embezzle", "stolen"],
+    "hint": "Ask Henri about the tour money."
+  },
+  {
+    "id": "clue-perfume",
+    "title": "The Perfume & Handkerchief",
+    "description": "A silk handkerchief monogrammed V.V. caught on the latch of compartment E, and the faint scent of Vivienne's signature perfume on the headrest. She claimed she never entered the room.",
+    "source": "vivienne",
+    "keywords": ["perfume", "handkerchief", "scent", "vivienne", "visit", "latch", "12:45"],
+    "hint": "Ask Vivienne whether she visited compartment E."
+  },
+  {
+    "id": "clue-snow",
+    "title": "The Untouched Snow",
+    "description": "Fresh snow against the window sill is undisturbed. No footprints on the roof or the track. Whoever opened that window either stayed aboard - or never needed to leave through it.",
+    "source": "scene",
+    "keywords": ["snow", "window", "escape", "roof", "tracks", "outside", "footprints", "jump"],
+    "hint": "Ask anyone how the killer could have escaped."
+  },
+  {
+    "id": "clue-stub",
+    "title": "The Pocketed Stub",
+    "description": "Found in Amos Grey's coat pocket: Sebastian Croft's ticket stub, punched at 1:32 in Car 7 - and hidden instead of logged. Amos says he planned to sell the information.",
+    "source": "amos",
+    "keywords": ["stub", "pocket", "hidden", "evidence", "corridor", "1:32", "found"],
+    "hint": "Ask Amos if he found anything in the corridor."
+  }
+]

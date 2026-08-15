@@ -1,0 +1,65 @@
+{
+  "id": "midnight-meridian",
+  "title": "The Midnight Meridian",
+  "lang": "en",
+  "tagline": "A locked-room murder on the last train to the coast",
+  "difficulty": 3,
+  "estimatedMinutes": 18,
+  "victim": {
+    "name": "Aldous Vance",
+    "age": 47,
+    "emoji": "🎩",
+    "bio": "\"The Great Aldous\" - escape artist, stage magician, and the most famous showman on the West Coast. He had spent the season dazzling audiences with the impossible Golden Cage escape, and making enemies of almost everyone who helped him do it."
+  },
+  "location": "The Meridian Limited · Compartment E, Car 7",
+  "time": "March 3, 1927, 1:35 AM",
+  "briefing": "The Midnight Meridian left Crestline at 9:00 PM bound for the coast, sealed in by a snowstorm that turned the mountain pass into a white wall. At 1:35 AM, compartment E went quiet. At 1:50, the conductor forced the door and found the Great Aldous dead - stabbed once, behind a bolt that was drawn from the inside. Five people remain aboard. Nobody has left the train. The killer is still among them.",
+  "scene": "The compartment smells of cologne and cold air. Aldous Vance lies between the berths, one hand still clutching a red silk scarf, a single dark wound staining his smoking jacket. The door's bolt is drawn, yet the window stands open a finger's width, snow dusted across the sill. On the carpet: a torn playing card, a length of black thread, and a silk handkerchief caught on the latch.",
+  "timeline": [
+    "9:00 PM - The Meridian Limited departs Crestline. The snowstorm seals the mountain pass; the train is effectively locked.",
+    "10:15 PM - After-show dinner. Aldous holds court in the dining car and publicly shreds Sebastian Croft's new act.",
+    "11:40 PM - Henri Beaumont and Aldous argue loudly in the corridor outside Car 7. Maggie Vance overhears.",
+    "12:45 AM - Vivienne is seen near compartment E. She later claims she never entered.",
+    "1:05 AM - A note, signed 'A.', is slipped under Sebastian Croft's door.",
+    "1:25 AM - Conductor Amos Grey punches tickets in Car 6. His ledger later shows Sebastian's berth empty until 1:45.",
+    "1:32 AM - Vivienne, passing through Car 7, hears a muffled thud from compartment E.",
+    "1:50 AM - Amos finds the door locked, forces it with the fire axe. Aldous is dead; the window is open a finger's width.",
+    "2:10 AM - The train limps into Yuma. The sheriff boards. Nobody has left the train."
+  ],
+  "solution": {
+    "killer": "sebastian",
+    "killerName": "Sebastian Croft",
+    "weapon": "a stage dagger fitted with a real blade",
+    "motive": "Aldous had publicly destroyed Sebastian's career and, that night, slipped a note threatening to expose him as a fraud in front of Henri's investors. Sebastian went to compartment E at 1:30, killed him with the real-bladed dagger from their old shared act, then locked the bolt from outside with magician's thread and pulled it free through the window.",
+    "summary": "Sebastian Croft killed Aldous Vance in a locked compartment he made look impossible to enter. Vivienne's perfume, Henri's drained accounts, Maggie's exposé, and Amos's gambling debt all muddy the water, but the black thread, the real-bladed dagger, the torn Queen of Hearts, and the conductor's ledger put Sebastian at the door at 1:32 - and the untouched snow proves no one else could have left."
+  },
+  "epilogues": {
+    "solved_brilliant": "The thread, the ledger, and the torn Queen of Hearts built a chain the defense couldn't break. Sebastian Croft signed a confession before the train reached the coast, and the sheriff wired ahead: 'The Great Aldous gets his final curtain, and the mystery of the locked compartment is solved by the sharpest detective on the line.'",
+    "solved_thin": "Sebastian Croft was convicted, but the jury took four days and the papers hinted the evidence was 'stagecraft, not proof.' The right man is in irons, yet every reviewer in the country is asking whether the lead detective got lucky - or got played.",
+    "wrong": "The wrong man was led off in handcuffs while the real killer vanished into the desert night with the train. The Meridian Limited arrived in Yuma with a dead magician, a ruined reputation, and a case file that would gather dust for thirty years - with your name on the cover."
+  },
+  "ranks": [
+    { "min": 260, "title": "Legendary Detective", "emoji": "🕵️‍♂️" },
+    { "min": 200, "title": "Sharp Inspector", "emoji": "🧐" },
+    { "min": 130, "title": "Promising Officer", "emoji": "📋" },
+    { "min": 0, "title": "Rookie", "emoji": "👶" }
+  ],
+  "relations": [
+    { "a": "victim", "b": "sebastian", "label": "former apprentice, later bitter rival" },
+    { "a": "victim", "b": "vivienne", "label": "stage partner and wife of 14 years" },
+    { "a": "victim", "b": "henri", "label": "patron of the Golden Cage tour" },
+    { "a": "victim", "b": "maggie", "label": "estranged younger sister" },
+    { "a": "victim", "b": "amos", "label": "frequent passenger of his season's run" },
+    { "a": "vivienne", "b": "sebastian", "label": "shared the bill for years; cool professional rivals" },
+    { "a": "henri", "b": "sebastian", "label": "also backing Croft's new Impossible Cage act" },
+    { "a": "maggie", "b": "amos", "label": "old acquaintances from the tabloid beat" },
+    { "a": "maggie", "b": "henri", "label": "she once covered his Paris merger scandals" }
+  ],
+  "questions": [
+    "Where were you between 1:00 and 1:45 AM?",
+    "Did you argue with Aldous tonight?",
+    "Who else was near compartment E?",
+    "What do you know about the tour money?",
+    "How could anyone get out of that locked compartment?"
+  ]
+}

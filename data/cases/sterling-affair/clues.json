@@ -1,0 +1,66 @@
+[
+  {
+    "id": "clue-apollo-bust",
+    "title": "The Murder Weapon",
+    "description": "A marble bust of Apollo, smashed. Blood and hair on the base. The pedestal in the library is empty.",
+    "source": "scene",
+    "keywords": ["weapon", "bust", "statue", "marble", "apollo", "killed", "murder", "head"],
+    "hint": "Ask anyone how Victor was killed."
+  },
+  {
+    "id": "clue-garden-glove",
+    "title": "The Glove",
+    "description": "A man's leather glove, monogrammed M.C., found on the garden path beneath the library window. Marble dust in the cuff.",
+    "source": "scene",
+    "keywords": ["glove", "garden", "window", "monogram", "leather", "escape"],
+    "hint": "Ask about the garden or the window."
+  },
+  {
+    "id": "clue-ledger",
+    "title": "The Ledger",
+    "description": "Marcus's laptop, still open: four shell-company transfers totalling $4.1M, the last one dated yesterday.",
+    "source": "marcus",
+    "keywords": ["money", "ledger", "account", "embezzle", "shell", "transfer", "finance", "books", "steal"],
+    "hint": "Ask Marcus about money or the company books."
+  },
+  {
+    "id": "clue-divorce",
+    "title": "The Divorce File",
+    "description": "Evelyn's attorney's draft: Victor was divorcing her. The prenup pays her $0 if infidelity is proven. Dated two weeks ago.",
+    "source": "evelyn",
+    "keywords": ["divorce", "prenup", "will", "marriage", "affair", "infidelity", "estate", "wife"],
+    "hint": "Ask Evelyn about her marriage or the will."
+  },
+  {
+    "id": "clue-locket",
+    "title": "The Locket",
+    "description": "Evelyn's diamond locket, found under the library sofa. Nora's prints are on the service door.",
+    "source": "nora",
+    "keywords": ["locket", "necklace", "jewel", "library", "sofa", "jewellery"],
+    "hint": "Ask Nora why she was in the library."
+  },
+  {
+    "id": "clue-text",
+    "title": "The Summons",
+    "description": "Victor's phone: at 11:12 PM he texted Marcus, 'Meet me in the library. Now.' He had called his lawyer at 11:05 PM about 'embezzlement evidence'.",
+    "source": "scene",
+    "keywords": ["phone", "text", "message", "call", "lawyer", "summons", "embezzlement evidence"],
+    "hint": "Ask about Victor's phone or the lawyer."
+  },
+  {
+    "id": "clue-medical",
+    "title": "The Misdiagnosis",
+    "description": "A file from Dr Whitfield's practice: Victor's arrhythmia recorded as anxiety two years ago. A $2M malpractice exposure - and a gambling debt of $200K.",
+    "source": "alan",
+    "keywords": ["medicine", "heart", "diagnosis", "malpractice", "insurance", "debt", "medical", "health"],
+    "hint": "Ask Dr Whitfield about Victor's health."
+  },
+  {
+    "id": "clue-camera",
+    "title": "The Garden Door",
+    "description": "The garden door was unlocked from inside. A neighbour's security cam at 11:38 PM shows a tall figure in a grey suit leaving the library - barely 20 metres from the door.",
+    "source": "nora",
+    "keywords": ["camera", "security", "garden door", "figure", "cctv", "suit", "11:38"],
+    "hint": "Ask Nora about cameras or what she saw."
+  }
+]

@@ -1,0 +1,62 @@
+{
+  "id": "sterling-affair",
+  "title": "The Sterling Affair",
+  "tagline": "A voice-driven murder mystery at Blackwell Manor",
+  "difficulty": 2,
+  "estimatedMinutes": 15,
+  "victim": {
+    "name": "Victor Sterling",
+    "age": 54,
+    "emoji": "🕴️",
+    "bio": "Tech billionaire, founder of Sterling Industries, notoriously hard-edged with family and partners alike."
+  },
+  "location": "Blackwell Manor, the library",
+  "time": "July 13, 2026, 11:47 PM",
+  "briefing": "Victor Sterling was found dead in the library of Blackwell Manor at 11:47 PM, killed by a single blow to the head. Five people were in the manor that night, and every one of them had a reason to want him dead. You are the lead investigator. Interview the suspects with your voice, collect evidence, then accuse the killer. The case is solved only when you name the right person with the right evidence.",
+  "scene": "The library smells of rain and old paper. Victor Sterling lies beside the overturned chess table, a single wound to the back of his head. The marble bust of Apollo lies in pieces by the hearth, its pedestal empty, and the garden door stands ajar. Rain has soaked the sill - and on the path outside, a man's leather glove gleams under the porch light.",
+  "timeline": [
+    "10:30 PM - Dinner ends. Victor announces he will raise 'a serious matter' at a midnight meeting in the library.",
+    "11:05 PM - Victor calls his lawyer about 'embezzlement evidence'.",
+    "11:12 PM - Victor texts Marcus Chen: 'Meet me in the library. Now.'",
+    "11:38 PM - A neighbour's camera shows a tall figure in a grey suit leaving the library through the garden door.",
+    "11:42 PM - Head housekeeper Nora Kim enters the library through the service door. She does not call for help.",
+    "11:46 PM - Dr Alan Whitfield arrives for the midnight meeting and finds the body. He calls 911.",
+    "11:47 PM - Paramedics arrive. Victor Sterling is pronounced dead."
+  ],
+  "solution": {
+    "killer": "marcus",
+    "killerName": "Marcus Chen",
+    "weapon": "a marble bust of Apollo",
+    "motive": "Victor had discovered Marcus's $4.1M embezzlement and summoned him to the library to confront him. Marcus silenced him with the first thing at hand - the bust - then fled through the garden door.",
+    "summary": "Marcus Chen killed Victor Sterling in a panic after being confronted over embezzled funds. Evelyn had the divorce motive, Sofia had the rage, Alan had the malpractice secret, but only Marcus's timeline, the monogrammed glove, the open ledger, and the summoning text put him in the library at the fatal moment."
+  },
+  "epilogues": {
+    "solved_brilliant": "The evidence was airtight. Marcus Chen confessed within the hour, and the district attorney called your work 'the most methodical investigation Blackwell County has ever seen.' The Sterling Affair is closed. The manor can sleep again.",
+    "solved_thin": "Marcus Chen was convicted, but barely. The defense hammered the gaps in your case, and the jury took six days. The right person is behind bars, but the papers are already whispering about the lead investigator who got lucky.",
+    "wrong": "You arrested the wrong person. The real killer walked free that night, and Blackwell Manor's next owner - whoever that is - will never know how close justice came. The Sterling Affair is filed away as unsolved, and your name is attached to it."
+  },
+  "ranks": [
+    { "min": 240, "title": "Legendary Detective", "emoji": "🕵️‍♂️" },
+    { "min": 180, "title": "Sharp Inspector", "emoji": "🧐" },
+    { "min": 120, "title": "Promising Officer", "emoji": "📋" },
+    { "min": 0, "title": "Rookie", "emoji": "👶" }
+  ],
+  "relations": [
+    { "a": "victim", "b": "evelyn", "label": "wife of 19 years" },
+    { "a": "victim", "b": "marcus", "label": "CFO and business partner for 11 years" },
+    { "a": "victim", "b": "sofia", "label": "daughter from his first marriage" },
+    { "a": "victim", "b": "alan", "label": "oldest friend and family physician" },
+    { "a": "victim", "b": "nora", "label": "head housekeeper for 12 years" },
+    { "a": "evelyn", "b": "marcus", "label": "publicly clashed over company direction" },
+    { "a": "sofia", "b": "marcus", "label": "openly blames him for her exile from the family business" },
+    { "a": "alan", "b": "marcus", "label": "bridge partners at the manor's Thursday game" },
+    { "a": "nora", "b": "evelyn", "label": "personally loyal to Mrs Sterling" }
+  ],
+  "questions": [
+    "Where were you between 11:30 and 11:50?",
+    "Did you argue with Victor tonight?",
+    "Who else was near the library after dinner?",
+    "Was anyone in the manor short of money?",
+    "Why were you at Blackwell Manor that night?"
+  ]
+}

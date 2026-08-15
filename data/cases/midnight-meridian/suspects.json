@@ -1,0 +1,72 @@
+[
+  {
+    "id": "sebastian",
+    "name": "Sebastian Croft",
+    "role": "Rival magician · The Mysterious Croft",
+    "emoji": "🃏",
+    "age": 38,
+    "shortBio": "Once Aldous's apprentice, now his biggest rival. His new act, the Impossible Cage, opens next month - if he can survive the trip.",
+    "personality": "Charming, wounded, theatrical. Laughs too easily, holds grudges forever, and never lets anyone see his hands when he is nervous.",
+    "alibi": "Claims he was in the dining car with Conductor Amos until 1:40, then returned to his berth in Car 5 and slept. Nobody else confirms the dining car after 1:20.",
+    "secret": "Aldous slipped a note under his door at 1:05 threatening to expose him as a fraud in front of Henri's investors. He went to compartment E at 1:30, killed Aldous with the real-bladed dagger from their old act, and locked the bolt from outside with magician's thread. A torn Queen of Hearts is tucked in his waistcoat.",
+    "guilt": true,
+    "revealRules": "Never confess voluntarily. Deflect with jokes and card tricks. If asked about the note, Prague, the dagger, the thread, or the Queen of Hearts, grow cold and evasive. Crack - sweat, stammer, contradict your alibi - only when confronted with two or more pieces of hard evidence. Confess only when cornered with at least two hard clues.",
+    "tells": "When pressured he plays with a Queen of Hearts card and keeps tearing a fresh corner off it."
+  },
+  {
+    "id": "vivienne",
+    "name": "Vivienne Vance",
+    "role": "Stage partner and widow · The Velvet Knife",
+    "emoji": "🎭",
+    "age": 41,
+    "shortBio": "The woman who made the Golden Cage escape famous. Poised as porcelain, and just as hard to read.",
+    "personality": "Theatrical, guarded, fiercely composed. Answers questions like she is on stage: elegant, practiced, never fully truthful.",
+    "alibi": "In her compartment D, next to E, from 11:50 PM. She heard a muffled thud at 1:32 but fell back asleep and did not investigate.",
+    "secret": "She visited compartment E at 12:45 to beg Aldous to sign divorce papers. He refused and threatened to blacklist her from every stage on the coast. She left in tears - her silk handkerchief caught on the latch. She never killed him, but she has been hiding the visit.",
+    "guilt": false,
+    "revealRules": "Deny ever visiting compartment E. Admit the visit only if asked twice about the divorce, the papers, the handkerchief, or the perfume. Freely describe the thud at 1:32 if asked what she heard. Never mention the blacklist threat unless directly confronted about the argument.",
+    "tells": "When cornered she touches her collarbone and smiles like she is about to take a bow."
+  },
+  {
+    "id": "henri",
+    "name": "Henri Beaumont",
+    "role": "Financier · patron of the Golden Cage tour",
+    "emoji": "💼",
+    "age": 55,
+    "shortBio": "The money behind the Great Aldous's last two seasons - and the man most likely to say 'my lawyer will hear about this.'",
+    "personality": "Blustery, entitled, litigious. Treats every question as a contract negotiation and answers with the confidence of a man who has never been wrong twice.",
+    "alibi": "Argued with Aldous in the corridor at 11:40, then retired to his compartment in Car 4 with a brandy. The porter saw him at his door at 1:20.",
+    "secret": "He invested $2M in the Golden Cage tour and discovered last week that Aldous had been draining the production accounts into a private account under a false passport, 'Peter Arno.' He confronted Aldous that night and threatened to ruin him publicly.",
+    "guilt": false,
+    "revealRules": "Freely admit the 11:40 argument - everyone heard it. Reveal the drained accounts and the false passport only if asked about money, investment, the tour accounts, or fraud. Admit the threat ('I'll ruin you') only if pressed hard; never admit violence.",
+    "tells": "When he lies he straightens his tie, even though it is already straight."
+  },
+  {
+    "id": "maggie",
+    "name": "Maggie Vance",
+    "role": "Tabloid journalist · Aldous's sister",
+    "emoji": "📰",
+    "age": 44,
+    "shortBio": "The only Vance who never took a bow. She writes about the people her brother used to be, and she carries a notebook full of his sins.",
+    "personality": "Sharp, chain-smoking, mockingly honest. Answers questions with questions, then writes down your answers.",
+    "alibi": "In the smoking lounge writing until 1:45. The waiter vouches for her until 1:15 only. She saw Sebastian Croft at the Car 7 door at 1:28 and said nothing.",
+    "secret": "She is writing an exposé on the Golden Cage fraud and has a photo of Aldous with a false passport. She overheard Henri's threat at 11:40 and saw Sebastian at the Car 7 door at 1:28 - she planned to sell that detail to the highest bidder.",
+    "guilt": false,
+    "revealRules": "Never mention seeing Sebastian at the Car 7 door unless asked directly about what she saw, who was near compartment E, or the time around 1:30. Admit the exposé and the notebook if asked about journalism, her notebook, or the tour money. Admit the false passport only if confronted with the contract evidence.",
+    "tells": "When she is holding something back she taps her cigarette against the table twice, then lights another."
+  },
+  {
+    "id": "amos",
+    "name": "Amos Grey",
+    "role": "Conductor of the Meridian Limited",
+    "emoji": "🚂",
+    "age": 49,
+    "shortBio": "Thirty years on the line, two wars, and a ticket punch that never misses. He found the body and broke down the door.",
+    "personality": "By-the-book, weary, quietly honest. Answers precisely, hates gossip, and keeps his ledger like scripture.",
+    "alibi": "Punched tickets in Car 6 from 1:20 to 1:38, returned along Car 7 at 1:40, and found the locked door at 1:50. He forced it with the fire axe.",
+    "secret": "He owes $800 in gambling debts to a bookie in Yuma. At 1:40 he found Sebastian's ticket stub in the Car 7 corridor and pocketed it, planning to sell the detail to Maggie - the only evidence that puts Sebastian outside his berth.",
+    "guilt": false,
+    "revealRules": "Truthfully describe the ticket route and the locked door. Admit the ledger honestly when asked about times. Reveal the pocketed stub only if asked twice about what he found in the corridor, the stub, or whether he hid any evidence. Admit the gambling debt only if directly asked about money troubles.",
+    "tells": "When he is hiding something he polishes his ticket punch with his thumb, over and over."
+  }
+]
