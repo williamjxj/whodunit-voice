@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Whodunit Voice - Voice Murder Mystery</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%20100%20100%27%3E%3Ctext%20y=%27.9em%27%20font-size=%2790%27%3E%F0%9F%94%8D%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-emoji">🔍</span>
+      <div>
+        <h1 id="case-title">Whodunit Voice</h1>
+        <p class="brand-sub" data-i18n="app_sub">A voice-driven murder mystery</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="btn-sfx" class="icon-btn" title="Sound effects">🔊</button>
+      <div class="score-chip" id="score-chip">
+        <span id="score-value">0</span><span class="score-label" data-i18n="pts"> pts</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="screen-cases" class="screen active">
+      <div class="card">
+        <h2 data-i18n="choose_case">Choose a case</h2>
+        <p class="hint-note" data-i18n="case_select_hint">Three cases. Different languages, same rule: find the killer.</p>
+        <div id="case-grid" class="case-grid"></div>
+      </div>
+    </section>
+
+    <section id="screen-briefing" class="screen">
+      <div class="card briefing-card">
+        <h2 data-i18n="briefing_title">Case Briefing</h2>
+        <div class="victim-row">
+          <div class="victim-emoji" id="victim-emoji">🪦</div>
+          <div>
+            <p class="victim-name" id="victim-name"></p>
+            <p class="victim-meta" id="victim-meta"></p>
+            <p class="victim-bio" id="victim-bio"></p>
+          </div>
+        </div>
+        <div class="case-facts" id="case-facts"></div>
+        <p class="briefing-text" id="briefing-text"></p>
+        <div class="scene-box">
+          <h3><span data-i18n="scene_title">🔍 Crime Scene</span></h3>
+          <p id="scene-text"></p>
+        </div>
+        <div class="relations-box" id="relations-box" hidden>
+          <h3><span data-i18n="relations_title">🕸️ Relationships</span></h3>
+          <div id="relations-map" class="relations-map"></div>
+          <ul id="relations-list" class="relations-list"></ul>
+        </div>
+        <div class="timeline">
+          <h3 data-i18n="timeline_title">Timeline of the night</h3>
+          <ol id="timeline-list"></ol>
+        </div>
+        <div id="resume-banner" class="resume-banner" hidden>
+          <p id="resume-text"></p>
+          <div class="resume-actions">
+            <button id="btn-resume" class="btn btn-primary">▶ <span data-i18n="continue_investigation">Continue investigation</span></button>
+            <button id="btn-discard-save" class="btn btn-ghost">🗑 <span data-i18n="discard_save">Discard save</span></button>
+          </div>
+        </div>
+        <p class="hint-note" data-i18n="hint_note">🎙️ Ask suspects questions out loud, or type. Collect clues, then accuse.</p>
+        <button id="btn-accept" class="btn btn-primary" data-i18n="accept_case">Accept the case</button>
+        <button id="btn-back-cases" class="btn btn-ghost back-btn" data-i18n="back_cases">← Choose another case</button>
+      </div>
+    </section>
+
+    <section id="screen-lobby" class="screen">
+      <div class="lobby-head">
+        <div>
+          <h2 data-i18n="lobby_title">Interview the suspects</h2>
+          <span id="save-note" class="save-note"></span>
+        </div>
+        <div class="lobby-actions">
+          <button id="btn-evidence" class="btn btn-ghost"><span data-i18n="evidence_btn">📁 Evidence</span> (<span id="evidence-count">0</span>/<span id="evidence-total">8</span>)</button>
+          <button id="btn-clear-save" class="btn btn-ghost" title="Clear save">🗑</button>
+          <button id="btn-accuse" class="btn btn-danger" data-i18n="accuse_btn">⚖️ Accuse</button>
+        </div>
+      </div>
+      <div id="suspect-grid" class="suspect-grid"></div>
+    </section>
+
+    <section id="screen-interview" class="screen">
+      <button id="btn-back" class="btn btn-ghost back-btn" data-i18n="back_lobby">← Back to lobby</button>
+      <div class="interview-card">
+        <div class="suspect-head" id="suspect-head"></div>
+        <div id="chat-log" class="chat-log"></div>
+        <div id="quick-questions" class="quick-questions"></div>
+        <div class="controls">
+          <button id="btn-mic" class="mic-btn" title="🎤">🎤</button>
+          <input id="input-question" type="text" data-i18n-ph="input_ph" placeholder="Ask a question, or press the mic and speak..." autocomplete="off" />
+          <button id="btn-send" class="btn btn-primary" data-i18n="send_btn">Send</button>
+          <button id="btn-tts" class="btn btn-ghost"><span id="tts-icon">🔊</span> <span data-i18n="tts_label">Voice replies</span></button>
+        </div>
+        <p id="mic-status" class="mic-status"></p>
+      </div>
+    </section>
+
+    <section id="screen-verdict" class="screen">
+      <div class="card verdict-card" id="verdict-card"></div>
+    </section>
+  </main>
+
+  <div id="evidence-panel" class="drawer">
+    <div class="drawer-head">
+      <h3 data-i18n="evidence_board">Evidence Board</h3>
+      <button id="btn-close-evidence" class="btn btn-ghost">✕</button>
+    </div>
+    <div id="evidence-list" class="evidence-list"></div>
+    <div class="drawer-foot">
+      <button id="btn-hint" class="btn btn-ghost hint-btn">💡 <span data-i18n="hint_btn">Need a hint</span> (<span id="hints-left">3</span>)</button>
+    </div>
+  </div>
+
+  <div id="accuse-modal" class="modal">
+    <div class="modal-box">
+      <h3 data-i18n="accuse_title">Make your accusation</h3>
+      <p class="modal-sub" data-i18n="accuse_sub">Who killed the victim?</p>
+      <div id="accuse-suspects" class="accuse-suspects"></div>
+      <label class="field-label" for="motive" data-i18n="motive_label">Motive / reasoning (optional)</label>
+      <textarea id="motive" rows="3"></textarea>
+      <p class="field-label" data-i18n="cite_label">Cite evidence (check the ones you use)</p>
+      <div id="accuse-evidence" class="accuse-evidence"></div>
+      <div class="modal-actions">
+        <button id="btn-cancel-accuse" class="btn btn-ghost" data-i18n="cancel">Cancel</button>
+        <button id="btn-submit-accuse" class="btn btn-danger" data-i18n="submit_accuse">🔨 Submit accusation</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toasts" class="toasts"></div>
+  <script src="app.js"></script>
+</body>
+</html>
