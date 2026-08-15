@@ -1,7 +1,7 @@
 # Whodunit Voice - 语音互动探案
 
 <p align="center">
-  <img src="poster/poster.png" alt="Whodunit Voice 语音互动探案海报：开口，就能破案。🎙️开口审问 AI 嫌疑人 🔍细听解锁线索 ⚖️带着证据指控真凶" width="380" style="max-width:100%;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.2)">
+  <img src="poster/poster.jpeg" alt="Whodunit Voice 语音互动探案海报：开口，就能破案。🎙️开口审问 AI 嫌疑人 🔍细听解锁线索 ⚖️带着证据指控真凶" width="380" style="max-width:100%;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.2)">
 </p>
 
 一个浏览器端的**语音驱动互动谋杀推理游戏**：用声音（或打字）审问嫌疑人，
