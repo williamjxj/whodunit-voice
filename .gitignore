@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Environment (never commit real secrets; keep .env.example as a template)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editors / OS
+.idea/
+*.swp
+*.swo
+*~
+Thumbs.db
+Desktop.ini
+
+# Local tooling state (codegraph index lives outside the repo)
+.codegraph
+.omo/
+.playwright-mcp/

@@ -1,0 +1,12 @@
+{
+  "name": "whodunit-voice",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Voice-driven interactive murder mystery powered by DeepSeek V4 Flash (v1.0: 3 cases, mood tracking, saves, achievements)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": { "node": ">=18" }
+}
