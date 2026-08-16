@@ -244,6 +244,29 @@ MacBook M3 18GB）持续出图；按人物选择模型；侦探可选福尔摩�
   （玉簪 22 / Sterling 22 / Midnight 22 / 侦探 10），768×1024 PNG，manifest 已更新。
   注：连续跑 ~40 分钟后内存压力回升，末段单张 300 秒左右，属 M3 18GB 常态。
 
+**v0.7.3 案件生成流水线 + 朗读去舞台指示（2026-08-16）**
+- Kimi K3 案件生成器（scripts/llm.mjs + gen-cases.mjs + validate-cases.mjs）：
+  三步生成（核心→嫌疑人→线索），规避 K3 长请求断连；已生成 3 个新案件
+  （灯影幻戏 / 白牡丹 / The Halcyon Voyage），服务端共 6 案，全部通过校验。
+- LLM 引擎降级：Kimi 失败自动切 Qwen（DashScope compatible-mode，
+  `LLM_ENGINE=auto|kimi|qwen`）；qwen-max 连通性已实测。
+- 朗读去舞台指示：TTS 前剥离 （）()【】 内容（服务端 + 前端兜底双保险），
+  聊天区展示文本不变；实测纯括号文本返回 400、带括号与不带括号音频字节一致。
+- 修复：data/db.mjs ESM `__dirname`（最小改动）；sterling 缺 lang/titleEn 补全；
+  校验器白名单补 sambert-clara-v1。
+
+**v0.7.4 新案件人物图（R2 直存，2026-08-16）**
+- 三个新案 18 个角色（victim + 5 嫌疑人）接入 comfyui/config/characters.mjs：
+  灯影/白牡丹 → GuoFeng4（国风），Halcyon → Animagine（科幻）；66 张图全部生成。
+- R2-only 流程：`generate.mjs --r2` 出图后自动上传 Cloudflare R2（bucket `whodunit`）
+  并删除本地文件；webui 经 `/characters/*` 从 R2 读取（缺失回退 emoji）。
+- 修复用户代码 bug：downloadImage 的 R2 key 多拼了 `characters/` 前缀
+  （会传成 characters/characters/...）；已清理误传对象。
+- 新增 scripts/r2-reconcile.mjs 对账补传（从 ComfyUI 输出目录恢复缺失图）；
+  实测 66/66 全在 R2、本地 0 残留。
+- 修复三个新案 victim.id 统一为 "victim" 的问题（jin/baimudan/vane），
+  生成器新增 victimId 强制规则。
+
 ## v1.0.1 修复：人物关系页（2026-08-15）
 
 用户反馈：关系图只有 emoji 节点与裸线，没有名字和关系标签；列表 `A — label B` 格式易读反。
@@ -281,3 +304,28 @@ MacBook M3 18GB）持续出图；按人物选择模型；侦探可选福尔摩�
   新增 `comfyui/cloudflareR2/sync.mjs` 批量上传脚本（不用重跑出图即可补传旧图）；
   `.env` 解析改为按 REPO_ROOT 回溯；server.js / generate.mjs / test 的 import 路径同步更新。
 - [x] 全量补传（2026-08-16）：`sync.mjs` 上传 76 张全部成功，移走本地文件后 curl 仍 200（字节来自 R2）。
+
+## v0.8 用户数据存储（SQLite，2026-08-16）
+
+结论（用户确认）：**案件内容保持 JSON 文件不动**；用户数据（分数/结果/进度）改用内置
+`node:sqlite`（零 npm 依赖），替代 localStorage。
+
+- [x] `db.mjs`：零依赖 `node:sqlite` 封装（players / play_sessions / game_states 三表自建，
+  `data/whodunit.db` 已 gitignore）；`node:sqlite` 缺失时 `initDb()` 返回 null，服务端降级 503。
+- [x] `test/db.test.mjs`：7 项 node:test 全过（`:memory:`），覆盖 best/newBest、多玩家隔离、
+  存档 upsert/删除、排行榜排序（score DESC + played_at ASC 平局）、limit。
+- [x] `server.js`：新端点 `POST /api/session`、`GET /api/player`、`GET/PUT/DELETE /api/state`、
+  `GET /api/leaderboard`；`/api/health` 增 `db` 字段；启动日志打印 DB 路径。
+- [x] **防作弊**：`/api/session` 不信任客户端分数——只收 `correct`/`rating`/`cluesFound`/`hintsUsed`，
+  服务端重算 `score = max(0, clues*20 − hints*5 + correct?40:0 + rating)`，verdict 按
+  `correct && rating>=80 → solved_brilliant / correct → solved_thin / wrong` 推导。
+- [x] `public/app.js`：localStorage 仅存身份（`playerId`，`crypto.randomUUID`）与 TTS/SFX/侦探偏好；
+  存档改 `PUT /api/state`（fire-and-forget，会话裁剪至最近 30 条防超限），清档改 `DELETE`，
+  最佳分来自 `GET /api/player`，结算页 `await POST /api/session` 取 `newBest`；
+  旧 `whodunit_v2_save` 首次启动一次性迁移到服务端后删除。
+- [x] 实测（临时端口 4311，curl）：分数重算 225/65/252 全对；伪造 `score=99999` 被重算为 25；
+  state 存取删回环正常；非法 playerId / 未知 caseId / 未知 API 分别 400/400/404；`node --test` 18/18。
+- [x] 文档：AGENTS.md（Node>=22.5、db.mjs、新端点、防作弊规则）、docs/SPEC.md §20、.gitignore 增 `data/*.db*`。
+- [x] 重构：`db.mjs` 移入 `data/db.mjs`（与 `data/whodunit.db` 同目录，模块自管路径——
+  导出 `DB_FILE`，`initDb()` 默认使用；server.js 与 test 的 import 路径同步更新）。
+  临时端口 4311 冒烟回归：health.db=true、session/player/state/leaderboard 全通，测试行已清理。

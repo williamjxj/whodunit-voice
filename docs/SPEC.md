@@ -11,7 +11,8 @@
   标签使销量 5 倍；律师警告版权诉讼）。本项目 AI 只做角色扮演和判定，不生成受版权争议的资产。
 - **技术可行**：浏览器原生 Web Speech API 提供语音识别与合成，零语音 API 成本；
   DeepSeek V4 Flash 只做"嫌疑人/法官"的推理，本地 Node 代理保护 API key。
-- **适合 solo**：无数据库、无构建步骤、零 npm 依赖，Node 18+ 直接运行。
+- **适合 solo**：无第三方数据库、无构建步骤、零 npm 依赖，Node 18+ 直接运行；
+  用户数据（v0.8 起）用 Node 内置 node:sqlite（22.5+，缺失时相关端点降级 503）。
 
 ## 2. 产品定义
 
@@ -36,7 +37,7 @@
 | 5 名嫌疑人的语音/文字审问 | 多人模式、账号系统 |
 | 8 条线索的规则解锁与证据板 | 图像/视频生成 |
 | 指控 + AI 法官判定 + 结局 | 收费、后台管理 |
-| 评分与称号 | 持久化存档（刷新即重开） |
+| 评分与称号 | 账号系统（v0.8 起存档存本地 SQLite，无登录/云同步） |
 
 ## 5. 游戏流程
 
@@ -278,6 +279,20 @@ DeepSeek API (api.deepseek.com) / DashScope (dashscope.aliyuncs.com)
   「你的侦探」徽章（配图 `characters/detective/<id>_logo.png`）；
 - 全部 76 张角色图已生成并随仓库提交，前端零配置即显示。
 
+## 19. v0.7.3 更新（Kimi K3 案件流水线 + 朗读去舞台指示）
+
+**案件生成（CASE-PIPELINE-SPEC）**
+- 生成引擎 Kimi K3（OpenAI 兼容），`LLM_ENGINE=auto` 时失败自动降级
+  Qwen（DashScope compatible-mode，复用 `DASHSCOPE_API_KEY`）；
+- 三步生成（案件核心 → 嫌疑人 → 线索）+ 校验器（`npm run validate`），
+  已产出 3 个新案件：灯影幻戏（唐·长安灯节）、白牡丹（1935 上海戏院）、
+  The Halcyon Voyage（星际世代飞船）；游戏现有 6 案。
+
+**朗读去舞台指示**
+- 服务端 `/api/tts` 与前端 `speak()` 兜底均先剥离 （）()【】 内容再合成，
+  聊天区展示文本保持不变；
+- 实测：纯舞台指示文本返回 400（空文本）；同一句带/不带括号合成音频字节一致。
+
 ## 19. R2 图片存储（可选，v0.7.3）
 
 Cloudflare R2 对象存储作为生成图像的**备份与可选分发源**（详见 `docs/oc_r2_image_storage_design.md`）：
@@ -297,3 +312,34 @@ Cloudflare R2 对象存储作为生成图像的**备份与可选分发源**（�
   内存 FIFO 缓存 50 张，R2 缺失/出错回退本地静态文件；非 PNG 路径不拦截。
 
 **防作弊**：R2 仅存图片，代理链路永不接触 `solution`/`secret`/`guilt`。
+
+## 20. 用户数据存储（SQLite，v0.8）
+
+**原则**：案件内容（`data/cases/*.json`）保持文件存储不动；**用户数据**（分数/结果/进度）
+改用内置 `node:sqlite`（`data/db.mjs`，零 npm 依赖，Node >= 22.5，22.x 有 experimental 警告、24+ 稳定）。
+数据库文件 `data/whodunit.db` 已 gitignore（运行时数据，非内容），模块与库文件同目录
+（`data/db.mjs` 导出 `DB_FILE` 自管路径，`initDb()` 默认使用之）。
+
+**表结构**（`data/db.mjs` 启动时自建）
+- `players(id TEXT PK, created_at INTEGER)`；
+- `play_sessions(id PK, player_id, case_id, score, verdict, clues_found, hints_used, played_at)`，
+  索引 `(case_id, score DESC)`——排行榜一条查询；
+- `game_states(player_id, case_id, state TEXT, updated_at, PK(player_id, case_id))`——进行中存档。
+
+**新端点**（`node:sqlite` 不可用时统一返回 503）
+- `POST /api/session` `{playerId, caseId, correct, rating, cluesFound, hintsUsed}` →
+  `{score, best, newBest, verdict}`；
+- `GET /api/player?playerId=` → `{playerId, bests:{caseId: score}}`（案件卡片 🏆 徽章）；
+- `GET /api/state?playerId=` → `{playerId, states:{caseId:{state, updatedAt}}}`（跨设备续玩，支持多案并行存档）；
+- `PUT /api/state` `{playerId, caseId, state}` → `{ok:true}`（upsert 存档）；
+- `DELETE /api/state?playerId=&caseId=` → `{ok:true}`（放弃存档）；
+- `GET /api/leaderboard?caseId=&limit=` → `{caseId, leaderboard:[{playerId, score, verdict, playedAt}]}`。
+
+**防作弊（分数服务端重算）**：客户端**不发送可信分数**。`/api/session` 只收
+`correct`/`rating`（指控判定，服务端 `/api/accuse` 已有）+ 确定性游戏输入
+`cluesFound`/`hintsUsed`（均已限界），服务端按 `score = max(0, clues*20 − hints*5 + correct?40:0 + rating)`
+重算，`verdict` 按 `correct && rating>=80 → solved_brilliant / correct → solved_thin / 否则 wrong`
+推导——伪造 `score=99999` 无效（实测被重算为 25）。
+
+**客户端迁移**：`playerId`（`crypto.randomUUID`）与侦探/音效/TTS 偏好留在 localStorage（身份与
+UI 偏好，非游戏数据）；`whodunit_v2_save` 旧存档在首次启动时一次性迁移到服务端后删除。

@@ -1,0 +1,105 @@
+{
+  "3": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 7033,
+      "steps": 16,
+      "cfg": 5,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 0.62,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "11",
+        0
+      ]
+    }
+  },
+  "4": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "animagineXL40_v4Opt.safetensors"
+    }
+  },
+  "5": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 768,
+      "height": 1024,
+      "batch_size": 1
+    }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "A trusted 55-year-old chief medical officer, silver hair in a neat low bun, kind tired eyes, white medical uniform with cross patch, stethoscope around neck, composed gentle bedside manner, fiddling with her stethoscope, glancing at a sealed door, nervous, generation ship Halcyon, cryo-bay and hydroponic gardens, futuristic corridors, soft blue ambient light, high-tech interior, masterpiece, best quality, very aesthetic, absurdres, anime style, sci-fi space station, futuristic technology, cel shading, clean lineart, vibrant flat colors, game character art, expressive eyes, cinematic lighting",
+      "clip": [
+        "4",
+        1
+      ]
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "lowres, bad anatomy, bad hands, extra fingers, deformed hands, missing fingers, extra limbs, mutated, disfigured, blurry, jpeg artifacts, watermark, signature, text, logo, duplicate, cropped, out of frame, multiple people, photorealistic, realistic photo, photograph, film photography, 8k uhd, dslr, cinematic photo, live action, plastic skin",
+      "clip": [
+        "4",
+        1
+      ]
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "whodunit_halcyon-voyage_lindqvist_uneasy",
+      "images": [
+        "8",
+        0
+      ]
+    }
+  },
+  "10": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "whodunit_lindqvist_logo.png"
+    }
+  },
+  "11": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "10",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    }
+  }
+}

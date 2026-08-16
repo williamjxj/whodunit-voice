@@ -1,6 +1,8 @@
 {
   "id": "sterling-affair",
   "title": "The Sterling Affair",
+  "titleEn": "The Sterling Affair",
+  "lang": "en",
   "tagline": "A voice-driven murder mystery at Blackwell Manor",
   "difficulty": 2,
   "estimatedMinutes": 15,

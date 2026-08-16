@@ -1,0 +1,86 @@
+{
+  "3": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 5021,
+      "steps": 18,
+      "cfg": 5.5,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    }
+  },
+  "4": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "4Guofeng4XL_v12.safetensors"
+    }
+  },
+  "5": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 768,
+      "height": 1024,
+      "batch_size": 1
+    }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "A brooding 41-year-old Tang dynasty puppeteer, thin sharp face, shadowed eyes, dark blue robe with puppet strings wrapped around his arm, wooden puppet hanging at his waist, resentful guarded demeanor, head-and-shoulders portrait, centered, guarded frown, puppet visible, dark backdrop, Tang dynasty Chang'an, Shangyuan lantern festival night, crowded market street, fireworks glow, silk banners, traditional architecture, masterpiece, best quality, guofeng Chinese ancient-style game character, 2.5D anime illustration, clean lineart, cel shading, vibrant elegant colors, detailed hanfu textile, game splash art, expressive eyes, charming and playful mood",
+      "clip": [
+        "4",
+        1
+      ]
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "lowres, bad anatomy, bad hands, extra fingers, deformed hands, missing fingers, extra limbs, mutated, disfigured, blurry, jpeg artifacts, watermark, signature, text, logo, duplicate, cropped, out of frame, multiple people, photorealistic, realistic photo, photograph, film photography, 8k uhd, dslr, cinematic photo, live action, plastic skin",
+      "clip": [
+        "4",
+        1
+      ]
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "whodunit_lantern-tricks_mo_logo",
+      "images": [
+        "8",
+        0
+      ]
+    }
+  }
+}

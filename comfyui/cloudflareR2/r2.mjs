@@ -140,3 +140,10 @@ export async function r2GetObject(key) {
   if (status < 200 || status >= 300) throw new Error(`R2 fetch failed (HTTP ${status})`);
   return buffer;
 }
+
+export async function r2DeleteObject(key) {
+  const { status } = await r2Fetch('DELETE', key, undefined, undefined);
+  if (status === 404) return false;
+  if (status < 200 || status >= 300) throw new Error(`R2 delete failed (HTTP ${status})`);
+  return true;
+}

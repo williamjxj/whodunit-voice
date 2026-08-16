@@ -222,8 +222,8 @@
   const CORRECT_POINTS = 40;
   const HINT_COST = 5;
   const MAX_HINTS = 3;
-  const SAVE_KEY = 'whodunit_v2_save';
-  const BEST_PREFIX = 'whodunit_v2_best_';
+const SAVE_KEY = 'whodunit_v2_save'; // legacy localStorage save, migrated to the server once
+const PLAYER_KEY = 'whodunit_v2_player';
   const SFX_KEY = 'whodunit_v2_sfx';
   const TTS_KEY = 'whodunit_v2_tts';
   const DETECTIVE_KEY = 'whodunit_v2_detective';
@@ -270,6 +270,9 @@
     busy: false,
     saved: null,
     lastVerdict: null,
+    playerId: null,
+    bests: {},
+    saves: {},
   };
 
   function t(key) {
@@ -398,33 +401,79 @@
     } catch { /* noop */ }
   }
 
-  /* ---- persistence ---- */
-  function loadSaved() {
-    try { return JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch { return null; }
+  /* ---- persistence (server-side SQLite; localStorage only for identity) ---- */
+  function getPlayerId() {
+    let id = null;
+    try { id = localStorage.getItem(PLAYER_KEY); } catch { /* noop */ }
+    if (!id) {
+      id = (window.crypto && window.crypto.randomUUID)
+        ? window.crypto.randomUUID()
+        : `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+      try { localStorage.setItem(PLAYER_KEY, id); } catch { /* noop */ }
+    }
+    return id;
+  }
+  function trimConversations(conv) {
+    const out = {};
+    for (const [k, arr] of Object.entries(conv || {})) out[k] = Array.isArray(arr) ? arr.slice(-30) : arr;
+    return out;
   }
   function saveState() {
-    if (!state.caseId) return;
+    if (!state.caseId || !state.playerId) return;
+    const blob = {
+      v: 2,
+      caseId: state.caseId,
+      lang: state.lang,
+      foundClues: [...state.foundClues],
+      hintedClues: [...state.hintedClues],
+      score: state.score,
+      hintsUsed: state.hintsUsed,
+      questionCount: state.questionCount,
+      conversations: trimConversations(state.conversations[state.caseId] || {}),
+      questioned: state.questioned,
+      moods: state.moods,
+      savedAt: new Date().toISOString(),
+    };
+    state.saves[state.caseId] = blob;
+    state.saved = blob;
+    fetch('/api/state', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId: state.playerId, caseId: state.caseId, state: blob }),
+    }).catch(() => { /* offline: local copy already kept in state.saves */ });
+  }
+  async function loadPlayerData() {
     try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify({
-        v: 2,
-        caseId: state.caseId,
-        lang: state.lang,
-        foundClues: [...state.foundClues],
-        hintedClues: [...state.hintedClues],
-        score: state.score,
-        hintsUsed: state.hintsUsed,
-        questionCount: state.questionCount,
-        conversations: state.conversations[state.caseId] || {},
-        questioned: state.questioned,
-        moods: state.moods,
-        savedAt: new Date().toISOString(),
-      }));
-      state.saved = loadSaved();
-    } catch { /* storage full/unavailable */ }
+      const [playerRes, stateRes] = await Promise.all([
+        fetch(`/api/player?playerId=${encodeURIComponent(state.playerId)}`),
+        fetch(`/api/state?playerId=${encodeURIComponent(state.playerId)}`),
+      ]);
+      if (playerRes.ok) state.bests = (await playerRes.json()).bests || {};
+      if (stateRes.ok) state.saves = (await stateRes.json()).states || {};
+    } catch { /* server unreachable: start with empty maps */ }
+    migrateLegacySave();
+  }
+  function migrateLegacySave() {
+    let legacy = null;
+    try { legacy = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch { /* noop */ }
+    if (!legacy || !legacy.caseId || state.saves[legacy.caseId]) return;
+    state.saves[legacy.caseId] = legacy;
+    state.saved = legacy;
+    fetch('/api/state', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId: state.playerId, caseId: legacy.caseId, state: legacy }),
+    }).catch(() => {});
+    try { localStorage.removeItem(SAVE_KEY); } catch { /* noop */ }
   }
   function clearSave() {
-    try { localStorage.removeItem(SAVE_KEY); } catch { /* noop */ }
+    if (!state.caseId) { state.saved = null; return; }
+    delete state.saves[state.caseId];
     state.saved = null;
+    if (state.playerId) {
+      fetch(`/api/state?playerId=${encodeURIComponent(state.playerId)}&caseId=${encodeURIComponent(state.caseId)}`, { method: 'DELETE' })
+        .catch(() => { /* server may be offline; local maps already cleared */ });
+    }
   }
   function updateSaveNote() {
     const el = $('#save-note');
@@ -499,11 +548,12 @@
 
   /* ---- case select ---- */
   async function init() {
-    state.saved = loadSaved();
+    state.playerId = getPlayerId();
     state.detectiveId = localStorage.getItem(DETECTIVE_KEY) || 'sherlock';
     renderDetectivePicker();
     updateDetectiveChip();
     initTts(); // non-blocking; voice list arrives whenever ready
+    await loadPlayerData();
     try {
       const res = await fetch('/api/cases');
       if (!res.ok) throw new Error('failed to load cases');
@@ -527,8 +577,8 @@
       const diff = Math.max(1, Math.min(3, Number(c.difficulty) || 1));
       const stars = '★'.repeat(diff);
       const est = c.estimatedMinutes ? `⏱ ${c.estimatedMinutes} ${t('min_short')}` : '';
-      const best = Number(localStorage.getItem(BEST_PREFIX + c.id) || 0);
-      const hasSave = !!(state.saved && state.saved.caseId === c.id);
+      const best = state.bests[c.id] || 0;
+      const hasSave = !!state.saves[c.id];
       const badges =
         `${hasSave ? `<span class="case-badge continue-badge">▶ ${t('continue_label_short')}</span>` : ''}` +
         `${best ? `<span class="case-badge best-badge">🏆 ${t('best_score')} ${best}</span>` : ''}` +
@@ -610,6 +660,7 @@
       updateScore();
       updateEvidenceUI();
       renderSuspectGrid();
+      state.saved = state.saves[caseId] || null;
       renderResumeBanner();
       showScreen('screen-briefing');
     } catch (err) {
@@ -1112,7 +1163,7 @@
 
   function speak(text, opts = {}) {
     if (!state.ttsOn) return;
-    const clean = String(text || '').trim();
+    const clean = stripStage(text);
     if (!clean) return;
     stopSpeaking();
     const voiceId = activeVoiceId(String(opts.voice || ''));
@@ -1122,6 +1173,16 @@
     } else {
       speakWithBrowser(clean, opts.onEnd || null);
     }
+  }
+
+  /* 朗读前去掉舞台指示（（）...()...【...】）：只影响语音，不影响聊天区展示文本 */
+  function stripStage(text) {
+    return String(text || '')
+      .replace(/（[^（）]*）/g, '')
+      .replace(/\([^()]*\)/g, '')
+      .replace(/【[^】]*】/g, '')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
   }
 
   function judgeVoice() {
@@ -1266,13 +1327,33 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'accusation failed');
       $('#accuse-modal').classList.remove('open');
-      renderVerdict(data);
+      await renderVerdict(data);
     } catch (err) {
       toast(t('court_unavailable'));
     } finally {
       btn.disabled = false;
       btn.textContent = t('submit_accuse');
     }
+  }
+
+  async function submitSession() {
+    if (!state.playerId || !state.caseId || !state.lastVerdict) return null;
+    try {
+      const res = await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playerId: state.playerId,
+          caseId: state.caseId,
+          correct: Boolean(state.lastVerdict.correct),
+          rating: state.lastVerdict.rating,
+          cluesFound: state.foundClues.size,
+          hintsUsed: state.hintsUsed,
+        }),
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch { return null; }
   }
 
   function computeAchievements(v) {
@@ -1284,7 +1365,7 @@
     return got;
   }
 
-  function renderVerdict(data) {
+  async function renderVerdict(data) {
     const v = data.verdict;
     const correct = v.correct;
     state.lastVerdict = v;
@@ -1325,12 +1406,10 @@
         }).join('')}
       </div>`;
 
-    const bestKey = BEST_PREFIX + state.caseId;
-    const prevBest = Number(localStorage.getItem(bestKey) || 0);
-    const newBest = state.score > prevBest;
-    if (newBest) {
-      try { localStorage.setItem(bestKey, String(state.score)); } catch { /* noop */ }
-    }
+    const session = await submitSession();
+    const newBest = session ? session.newBest : state.score > (state.bests[state.caseId] || 0);
+    const best = Math.max(state.bests[state.caseId] || 0, state.score);
+    if (session) state.bests[state.caseId] = session.best;
 
     $('#verdict-card').innerHTML = `
       <div class="verdict-banner">${banner}</div>
@@ -1350,7 +1429,7 @@
       ${postmortemHtml}
       ${achievementsHtml}
       <div class="rank-line">${rank.emoji} ${t('final_rank')}: ${escapeHtml(rank.title)} · ${t('total_score')}: ${state.score}</div>
-      ${newBest ? `<p class="best-line">🎉 ${t('new_best')} ${t('best_score')}: ${state.score}</p>` : `<p class="best-line">${t('best_score')}: ${Math.max(prevBest, state.score)}</p>`}
+      ${newBest ? `<p class="best-line">🎉 ${t('new_best')} ${t('best_score')}: ${state.score}</p>` : `<p class="best-line">${t('best_score')}: ${best}</p>`}
       <div class="verdict-actions">
         <button id="btn-copy" class="btn btn-ghost">📋 ${t('copy_result')}</button>
         <button id="btn-continue" class="btn btn-primary">🏛️ ${t('back_lobby_v')}</button>

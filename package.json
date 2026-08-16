@@ -6,7 +6,9 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "validate": "node scripts/validate-cases.mjs",
+    "gen:cases": "node scripts/gen-cases.mjs"
   },
   "engines": { "node": ">=18" }
 }

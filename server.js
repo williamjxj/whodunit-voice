@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID, createHash } from 'node:crypto';
 import { isR2Enabled, r2GetObject } from './comfyui/cloudflareR2/r2.mjs';
+import { initDb, isDbReady, saveSession, getBests, getStates, setState, deleteState, getLeaderboard, DB_FILE } from './data/db.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -534,6 +535,33 @@ function loadCases() {
 }
 
 const cases = loadCases();
+
+/* ---- user data (scores / results / progress) ----
+   Stored in SQLite (data/whodunit.db, gitignored) via data/db.mjs. Scores are
+   derived server-side from server-verifiable inputs — the client never sends
+   a trusted score number, so tampered POSTs can't inflate the leaderboard. */
+const CLUE_POINTS = 20; // mirrors public/app.js
+const CORRECT_POINTS = 40;
+const HINT_COST = 5;
+const MAX_HINTS = 3;
+// DB file lives in data/ next to data/db.mjs (see DB_FILE export).
+
+function sanitizePlayerId(v) {
+  const s = String(v || '').trim();
+  return /^[A-Za-z0-9_-]{8,64}$/.test(s) ? s : null;
+}
+
+function deriveSession(pack, body) {
+  const correct = body.correct === true;
+  const rating = Math.max(0, Math.min(100, Number(body.rating) || 0));
+  const cluesFound = Math.max(0, Math.min(pack.clues.length, Math.floor(Number(body.cluesFound) || 0)));
+  const hintsUsed = Math.max(0, Math.min(MAX_HINTS, Math.floor(Number(body.hintsUsed) || 0)));
+  const score = Math.max(0, cluesFound * CLUE_POINTS - hintsUsed * HINT_COST + (correct ? CORRECT_POINTS : 0) + rating);
+  const verdict = correct ? (rating >= 80 ? 'solved_brilliant' : 'solved_thin') : 'wrong';
+  return { correct, rating, cluesFound, hintsUsed, score, verdict };
+}
+
+const db = await initDb();
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -832,6 +860,16 @@ function caseSummaries() {
   });
 }
 
+/* 朗读前去掉舞台指示（（）...()...【...】）：内容只展示，不读出来 */
+function stripStageDirections(text) {
+  return String(text || '')
+    .replace(/（[^（）]*）/g, '')
+    .replace(/\([^()]*\)/g, '')
+    .replace(/【[^】]*】/g, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
 const handler = async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
@@ -843,6 +881,7 @@ const handler = async (req, res) => {
         model: MODEL,
         cases: caseSummaries().length,
         caseTitle: Object.values(cases)[0]?.meta.title || '',
+        db: isDbReady(),
         tts: {
           enabled: Boolean(ttsActiveProvider()),
           activeProvider: ttsActiveProvider(),
@@ -879,7 +918,7 @@ const handler = async (req, res) => {
 
     if (req.method === 'POST' && pathname === '/api/tts') {
       const body = await readJsonBody(req);
-      const text = typeof body.text === 'string' ? body.text.trim().slice(0, 1000) : '';
+      const text = stripStageDirections(body.text).slice(0, 1000);
       if (!text) {
         sendJson(res, 400, { error: 'Empty text' });
         return;
@@ -1020,6 +1059,74 @@ const handler = async (req, res) => {
       return;
     }
 
+    if (req.method === 'POST' && pathname === '/api/session') {
+      if (!isDbReady()) { sendJson(res, 503, { error: 'User data DB unavailable (requires Node >= 22.5)' }); return; }
+      const body = await readJsonBody(req);
+      const playerId = sanitizePlayerId(body.playerId);
+      const pack = cases[String(body.caseId || '')];
+      if (!playerId) { sendJson(res, 400, { error: 'Invalid playerId' }); return; }
+      if (!pack) { sendJson(res, 400, { error: 'Unknown caseId' }); return; }
+      const s = deriveSession(pack, body);
+      const result = saveSession({
+        playerId,
+        caseId: pack.id,
+        score: s.score,
+        verdict: s.verdict,
+        cluesFound: s.cluesFound,
+        hintsUsed: s.hintsUsed,
+      });
+      sendJson(res, 200, { score: result.score, best: result.best, newBest: result.newBest, verdict: s.verdict });
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/api/player') {
+      if (!isDbReady()) { sendJson(res, 503, { error: 'User data DB unavailable (requires Node >= 22.5)' }); return; }
+      const playerId = sanitizePlayerId(url.searchParams.get('playerId'));
+      if (!playerId) { sendJson(res, 400, { error: 'Invalid playerId' }); return; }
+      sendJson(res, 200, { playerId, bests: getBests(playerId) });
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/api/state') {
+      if (!isDbReady()) { sendJson(res, 503, { error: 'User data DB unavailable (requires Node >= 22.5)' }); return; }
+      const playerId = sanitizePlayerId(url.searchParams.get('playerId'));
+      if (!playerId) { sendJson(res, 400, { error: 'Invalid playerId' }); return; }
+      sendJson(res, 200, { playerId, states: getStates(playerId) });
+      return;
+    }
+
+    if (req.method === 'PUT' && pathname === '/api/state') {
+      if (!isDbReady()) { sendJson(res, 503, { error: 'User data DB unavailable (requires Node >= 22.5)' }); return; }
+      const body = await readJsonBody(req);
+      const playerId = sanitizePlayerId(body.playerId);
+      const pack = cases[String(body.caseId || '')];
+      if (!playerId) { sendJson(res, 400, { error: 'Invalid playerId' }); return; }
+      if (!pack) { sendJson(res, 400, { error: 'Unknown caseId' }); return; }
+      if (!body.state || typeof body.state !== 'object') { sendJson(res, 400, { error: 'Invalid state' }); return; }
+      setState(playerId, pack.id, body.state);
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    if (req.method === 'DELETE' && pathname === '/api/state') {
+      if (!isDbReady()) { sendJson(res, 503, { error: 'User data DB unavailable (requires Node >= 22.5)' }); return; }
+      const playerId = sanitizePlayerId(url.searchParams.get('playerId'));
+      const caseId = String(url.searchParams.get('caseId') || '');
+      if (!playerId || !cases[caseId]) { sendJson(res, 400, { error: 'Invalid playerId or caseId' }); return; }
+      deleteState(playerId, caseId);
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/api/leaderboard') {
+      if (!isDbReady()) { sendJson(res, 503, { error: 'User data DB unavailable (requires Node >= 22.5)' }); return; }
+      const caseId = String(url.searchParams.get('caseId') || '');
+      if (!cases[caseId]) { sendJson(res, 400, { error: 'Unknown caseId' }); return; }
+      const limit = Number(url.searchParams.get('limit')) || 10;
+      sendJson(res, 200, { caseId, leaderboard: getLeaderboard(caseId, limit) });
+      return;
+    }
+
     if (pathname.startsWith('/api/')) {
       sendJson(res, 404, { error: 'Unknown API endpoint' });
       return;
@@ -1044,6 +1151,8 @@ server.listen(PORT, HOST, () => {
   else if (DASHSCOPE_API_KEY && !HAS_NATIVE_WS) console.warn('WARNING: DASHSCOPE_API_KEY set but Node < 22 has no native WebSocket - server TTS disabled');
   if (EDGE_TTS_ENABLED && HAS_NATIVE_WS) console.log(`TTS: Edge TTS enabled (free, ${EDGE_VOICES.length} curated voices)`);
   if (R2_IMAGES_ENABLED) console.log('R2: /characters/* 图片从 Cloudflare R2 提供（缺失回退本地）');
+  if (isDbReady()) console.log(`DB: 用户数据（分数/进度/结果）→ ${DB_FILE}`);
+  else console.warn('WARNING: node:sqlite 不可用（需 Node >= 22.5）— 分数/存档端点将返回 503');
   if (!DASHSCOPE_API_KEY && !(EDGE_TTS_ENABLED && HAS_NATIVE_WS)) console.warn('WARNING: no TTS provider active - browser speechSynthesis fallback only. Add DASHSCOPE_API_KEY or enable Edge TTS.');
 });
 

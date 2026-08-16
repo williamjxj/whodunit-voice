@@ -1,0 +1,86 @@
+{
+  "3": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 6041,
+      "steps": 18,
+      "cfg": 5.5,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    }
+  },
+  "4": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "4Guofeng4XL_v12.safetensors"
+    }
+  },
+  "5": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 768,
+      "height": 1024,
+      "batch_size": 1
+    }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "A quiet 38-year-old 1930s theatre huqin player, gaunt melancholy face, round glasses, rumpled gray changshan robe, huqin case under his arm, gentle calloused hands, eyes full of hidden sorrow, head-and-shoulders portrait, centered, sorrowful calm, huqin visible, dark backdrop, 1935 Shanghai Grand Theatre backstage, rainy night, art deco dressing room, vintage mirror lights, velvet curtains, old gramophone, masterpiece, best quality, guofeng Chinese 1930s Shanghai style, qipao and vintage fashion, art deco theatre glamour, anime illustration, cel shading, clean lineart, vibrant elegant colors, game character art, expressive eyes, dramatic film-noir mood",
+      "clip": [
+        "4",
+        1
+      ]
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "lowres, bad anatomy, bad hands, extra fingers, deformed hands, missing fingers, extra limbs, mutated, disfigured, blurry, jpeg artifacts, watermark, signature, text, logo, duplicate, cropped, out of frame, multiple people, photorealistic, realistic photo, photograph, film photography, 8k uhd, dslr, cinematic photo, live action, plastic skin",
+      "clip": [
+        "4",
+        1
+      ]
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "whodunit_grand-theatre_qinshi_logo",
+      "images": [
+        "8",
+        0
+      ]
+    }
+  }
+}

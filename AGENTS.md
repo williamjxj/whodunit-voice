@@ -1,19 +1,20 @@
 # AGENTS.md
 
-Voice-driven murder-mystery game: browser frontend (`public/`) talks to a zero-dependency Node server (`server.js`) that proxies roleplay/verdict prompts to DeepSeek. Three built-in case packs (two EN + one ZH). All data is fake.
+Voice-driven murder-mystery game: browser frontend (`public/`) talks to a zero-dependency Node server (`server.js`) that proxies roleplay/verdict prompts to DeepSeek. Six built-in case packs (three EN + three ZH). All data is fake.
 
 ## Run / verify
 
-- Zero npm dependencies, no build, no lint, no tests. Node >= 18, ESM (`"type": "module"`).
+- Zero npm dependencies, no build, no lint. Node >= 18, ESM (`"type": "module"`). **User-data DB (scores/progress/results) needs Node >= 22.5** for built-in `node:sqlite` (22.x prints an experimental warning once; 24+ is stable). Below 22.5 the server still boots — DB endpoints return 503.
 - `node server.js` (or `npm start`) → serves `public/` + API on `127.0.0.1:4310` **and** `[::1]` (dual-stack bind; macOS browsers hit `localhost` via IPv6 — don't remove the second listener).
 - Env: `cp .env.example .env`, fill `DEEPSEEK_API_KEY`. `server.js` parses `.env` with its own mini-parser (no dotenv); real process env wins. `.env` is gitignored — never commit keys.
 - Verification without tests: `node --check server.js`, then `curl http://127.0.0.1:4310/api/health`. DeepSeek-dependent endpoints (`/api/chat`, `/api/accuse`) fail with 502 if the key is bad/quotas exhausted.
-- R2 tests (if enabled): `node --test test/r2.test.mjs` — unit tests for config/signing + a live upload/fetch round-trip (auto-skips when `R2_IMAGES_ENABLED` is off).
+- Tests: `node --test` (auto-discovers `test/*.test.mjs`; the directory form `node --test test/` is broken on Node 22 — don't use it). Covers `db.test.mjs` (7, in-memory `node:sqlite`) + `r2.test.mjs` (11, auto-skips live round-trip when `R2_IMAGES_ENABLED` is off).
 
 ## Architecture
 
 - `server.js` — static file serving + API. Case packs loaded **once at startup** into memory: editing/adding JSON under `data/cases/` requires a server restart.
 - API: `GET /api/health`, `GET /api/cases`, `GET /api/case?caseId=`, `POST /api/chat` `{caseId, suspectId, messages, question}`, `POST /api/accuse` `{caseId, suspectId, motive, evidence[]}`, `GET /api/tts/voices`, `POST /api/tts` `{text, voice, rate?, pitch?}` → `audio/wav`. Same-origin; no CORS.
+- User data (v0.8): `data/db.mjs` — built-in `node:sqlite` at `data/whodunit.db` (gitignored; needs Node >= 22.5, else endpoints return 503). The module owns its DB file path (`DB_FILE` export). Endpoints: `POST /api/session` `{playerId, caseId, correct, rating, cluesFound, hintsUsed}` → `{score, best, newBest, verdict}` (score recomputed server-side — never trust client score), `GET /api/player?playerId=` → per-case bests, `GET/PUT/DELETE /api/state` (in-progress saves; supports multiple cases in parallel), `GET /api/leaderboard?caseId=`. Cases stay JSON files — the DB stores only per-player runtime data.
 - `public/app.js` — all client logic incl. the `I18N` en/zh dictionary; `public/index.html`, `public/styles.css`.
 - LLM limits (keep if you touch them): chat history sanitized to last 12 messages × 600 chars; question capped at 500 chars; 45s request timeout. Suspect prompts are built per-suspect from `personality/alibi/secret/revealRules/tells`; judge prompt demands strict JSON, parsed by `extractJson()` (strips ``` fences, slices first `{...}`). Both prompts are bilingual, keyed on `case.lang === 'zh'`. `/api/chat` replies may end with a `[STATE]{...}` stage note — the server strips it and returns structured `mood`/`tell` (falls back to `calm` on parse failure).
 - TTS (v0.5/v0.6): `POST /api/tts` accepts `{text, voice, rate?, pitch?, provider?: auto|sambert|edge}`. Two providers:
@@ -37,6 +38,7 @@ Use an existing pack (`data/cases/jade-pavilion/`) as the schema reference.
 ## Rules that must not be broken
 
 - **Anti-cheat**: `/api/case` must never send `solution`, `secret`, or `guilt` — it strips suspects to id/name/role/emoji/age/shortBio only. Truth exists only server-side (`case.json.solution`, `suspects[].guilt`). New endpoints must preserve this.
+- **Scores are server-derived**: `/api/session` never trusts a client-sent score — it recomputes from `correct`/`rating` (the accusation the server already judged) + bounded `cluesFound`/`hintsUsed`. Keep this when changing scoring rules (constants `CLUE_POINTS`/`CORRECT_POINTS`/`HINT_COST`/`MAX_HINTS` in `server.js` mirror `public/app.js`).
 - **Clue unlocking is deterministic client-side keyword matching** (`unlockClues()` in `public/app.js`): the player's question text is matched case-insensitively against `clues[].keywords`. Not LLM-based. Keywords should be words players will plausibly speak; +20 pts per clue, +40 for correct accusation.
 - **R2 serves images only** — the proxy must never touch `solution`/`secret`/`guilt`.
 

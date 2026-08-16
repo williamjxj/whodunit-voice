@@ -34,3 +34,9 @@ Desktop.ini
 .playwright-cli/
 __pycache__/
 public/characters/
+
+# User data database (scores / progress / results) — runtime data, not content
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm

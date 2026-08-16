@@ -13,7 +13,7 @@
 ```bash
 cd /Users/william.jiang/my-tests/my-fun/whodunit-voice
 cp .env.example .env        # 填入 DEEPSEEK_API_KEY（可选：DASHSCOPE_API_KEY 启用多音色配音）
-node server.js              # Node >= 18，零依赖，无需 npm install
+node server.js              # Node >= 18，零依赖，无需 npm install（存档功能需 Node >= 22.5）
 ```
 
 打开 http://127.0.0.1:4310 ，选择一个案件开始。
@@ -30,6 +30,9 @@ node server.js              # Node >= 18，零依赖，无需 npm install
 | The Sterling Affair | English | 科技富豪 Victor Sterling 死于书房，5 名嫌疑人，真凶 CFO Marcus Chen |
 | 玉簪案 | 中文 | 临安绸缎庄东家赵文远被砒霜毒杀，5 名嫌疑人，真凶账房钱伯年 |
 | The Midnight Meridian | English | 1927 年豪华列车密室命案：魔术师 Aldous Vance 被刺死在锁死的包厢里，5 名嫌疑人，真凶对手魔术师 Sebastian Croft |
+| 灯影幻戏（Kimi K3 生成） | 中文 | 唐·长安上元灯节，戏法大师死在从内反锁的戏箱里；真凶利用"箱中换人"的障眼法 |
+| 白牡丹（Kimi K3 生成） | 中文 | 1935 上海大光明戏院，头牌名伶死在反锁的化妆间；死亡时间被"谢幕"误导 |
+| The Halcyon Voyage（Kimi K3 生成） | English | 世代飞船 Halcyon 的冷冻舱密室：建筑师死于密封低温舱，AI 日志被伪造 |
 
 UI、语音识别与朗读语言自动跟随案件语言（en-US / zh-CN）。
 
@@ -44,8 +47,8 @@ UI、语音识别与朗读语言自动跟随案件语言（en-US / zh-CN）。
 7. 掌握证据后点 ⚖️ Accuse：选嫌疑人、填动机、勾选引用的证据。
 8. 法官给出判定、评分、**关键证据反馈**、**成就**与**结案复盘**（漏掉的线索+提示）。
 
-进度会自动保存在浏览器本地：刷新或关页后，案件卡片会显示 ▶ 继续，简报页可一键续玩。
-最佳得分按案件记录，展示在案件卡片与判决页。
+进度自动保存在服务端 SQLite（Node 内置 node:sqlite）：刷新或关页后，案件卡片会显示 ▶ 继续，简报页可一键续玩；多案进度互不覆盖。
+最佳得分按案件记录（服务端），展示在案件卡片与判决页。
 
 ### 声音玩法
 
@@ -72,7 +75,7 @@ UI、语音识别与朗读语言自动跟随案件语言（en-US / zh-CN）。
 ```
 
 - 案件包：`data/cases/<caseId>/`（case.json / suspects.json / clues.json，可插拔）
-- 后端：`server.js`（静态服务 + /api/cases + /api/case + /api/chat + /api/accuse + /api/tts + /api/tts/voices + /api/health）
+- 后端：`server.js`（静态服务 + /api/cases + /api/case + /api/chat + /api/accuse + /api/tts + /api/tts/voices + /api/health + 用户数据 /api/session、/api/player、/api/state、/api/leaderboard）
 - 前端：`public/index.html`、`public/styles.css`、`public/app.js`（含 I18N 字典）
 - 人物图像：`public/characters/<caseId>/<charId>_<variant>.png`；工作流与生成器在 `comfyui/`
 
@@ -85,8 +88,8 @@ UI、语音识别与朗读语言自动跟随案件语言（en-US / zh-CN）。
 - **线索确定性**：线索解锁是关键词规则匹配，不依赖 LLM，行为可预期。
 - **LLM 角色约束**：每名嫌疑人带 personality / secret / revealRules，控制隐瞒与崩溃时机。
 - **审问状态观察**：嫌疑人回复末尾携带隐藏的舞台提示（mood/tell），服务端解析后用于界面情绪徽章，不影响角色扮演正文。
-- **存档续玩**：线索/分数/审问记录/提示次数/情绪状态写入 localStorage，随案件自动保存。
-- **零依赖**：Node 18+ 内置 http/fetch 即可运行。
+- **存档续玩**：线索/分数/审问记录/提示次数/情绪状态写入服务端 SQLite（`data/whodunit.db`，Node 内置 node:sqlite，零依赖），随案件自动保存，支持多案并行。
+- **零依赖**：Node 18+ 内置 http/fetch 即可运行；用户数据存档需 Node 22.5+（内置 node:sqlite，缺失时相关端点降级 503）。
 
 ## 常见问题
 
@@ -102,6 +105,9 @@ UI、语音识别与朗读语言自动跟随案件语言（en-US / zh-CN）。
 - [PLAN.md](docs/PLAN.md) - 实施计划与验证记录
 - [resources.md](docs/resources.md) - 运行资源清单
 - [comfyui/README.md](comfyui/README.md) - 人物图像生成（动画风模型清单、ComfyUI 工作流）
+- [REVIEW.md](docs/REVIEW.md) - 产品与技术评审 + 路线建议（v0.7.2 节点）
+- [CASE-PIPELINE-SPEC.md](docs/CASE-PIPELINE-SPEC.md) - 案件制作流水线设计（内容量产）
+- [MOBILE-APP-SPEC.md](docs/MOBILE-APP-SPEC.md) / [MOBILE-APP-PLAN.md](docs/MOBILE-APP-PLAN.md) - 手机端（PWA → Capacitor）设计与计划（**已搁置**）
 
 ## 安全提示
 

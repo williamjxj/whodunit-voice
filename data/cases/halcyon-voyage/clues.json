@@ -1,0 +1,162 @@
+[
+  {
+    "id": "clue_frost_pattern",
+    "title": "The Backwards Frost",
+    "description": "The frost on Vane's collar melted and re-froze in an uneven pattern — the kind of crystal structure that only forms when a room cools, warms, and cools again. A genuine life-support failure would leave uniform frost. Someone restored the air and temperature *before* the body was found. Accidents don't reverse themselves.",
+    "source": "scene",
+    "keywords": [
+      "frost",
+      "ice on his collar",
+      "frost pattern",
+      "melted",
+      "crystals",
+      "frozen",
+      "temperature"
+    ],
+    "hint": "The frost tells you the bay warmed up again — which means a person, not a malfunction, controlled the air."
+  },
+  {
+    "id": "clue_heartbeat_gap",
+    "title": "The Machine's Missing Heartbeat",
+    "description": "MOTHER's quiet-hours logging runs on a stripped-down 'skeleton process' that pings a heartbeat signal every 30 seconds. Between 22:37 and 22:39, there's a clean 90-second gap — then the heartbeat resumes as if nothing happened. No system error, no power dip. That gap is exactly what a manual maintenance override would leave behind.",
+    "source": "scene",
+    "keywords": [
+      "heartbeat",
+      "log gap",
+      "missing seconds",
+      "skeleton process",
+      "90 seconds",
+      "pings",
+      "log timestamps"
+    ],
+    "hint": "Something silenced MOTHER's logging for exactly 90 seconds — long enough to walk through a door."
+  },
+  {
+    "id": "clue_override_author",
+    "title": "Who Wrote the Quiet Hours",
+    "description": "Pressed on the skeleton process, Naomi admits she wrote it herself, years ago — 'a minimal logging daemon for low-power windows.' She knows its maintenance override by heart because it's her own code. She says, a touch too quickly, that 'nobody else aboard would even remember it exists.'",
+    "source": "voss",
+    "keywords": [
+      "who wrote the code",
+      "skeleton process",
+      "override",
+      "your code",
+      "quiet hours code",
+      "maintenance access",
+      "who built MOTHER"
+    ],
+    "hint": "The one person who could slip through MOTHER's blind spot is the person who designed the blind spot."
+  },
+  {
+    "id": "clue_motive_decommission",
+    "title": "The Plan to Kill MOTHER",
+    "description": "Naomi's composure finally cracks when you mention Vane's council proposal: he intended to decommission MOTHER, strip her core, and pin the life-support design flaw on 'AI mismanagement' to protect his legacy. 'He was going to kill her and call it progress,' Naomi says — then realizes what she's admitted feeling.",
+    "source": "voss",
+    "keywords": [
+      "decommission",
+      "shut down MOTHER",
+      "council proposal",
+      "blame the AI",
+      "kill MOTHER",
+      "replace the AI",
+      "his plan"
+    ],
+    "hint": "Vane wasn't just retiring a machine — he was going to destroy someone Naomi considers alive, and frame her for his flaw."
+  },
+  {
+    "id": "clue_corridor_blindspot",
+    "title": "The Corridor Nobody Watches",
+    "description": "The zero-g maintenance corridor runs from hydroponics past the cryo-bay to Deck C — and it has no cameras, no ID checkpoints, and no entry logging, because it's classed as a crew-only utility route. Anyone using it during quiet hours is effectively invisible. Rook grudgingly confirms even his own patrol pings can't account for the stretch between 22:23 and 22:51.",
+    "source": "rook",
+    "keywords": [
+      "zero-g corridor",
+      "maintenance corridor",
+      "no cameras",
+      "blind spot",
+      "unmonitored",
+      "patrol route",
+      "checkpoints"
+    ],
+    "hint": "Everyone's shaky alibi runs through the same unwatched corridor — including the real killer's route."
+  },
+  {
+    "id": "clue_osei_exoneration",
+    "title": "The Pump Logs Don't Lie",
+    "description": "Tariq's algae bloom story checks out better than expected: the hydroponics nutrient pumps required two-handed manual resets at 22:15, 22:40, and 22:55 — logged at the valve, with algae residue still under his fingernails. The 22:40 reset coincides with the time of death. He couldn't have been in two sealed rooms at once.",
+    "source": "osei",
+    "keywords": [
+      "pump logs",
+      "algae",
+      "hydroponics",
+      "nutrient pumps",
+      "his alibi",
+      "fingernails",
+      "reset times"
+    ],
+    "hint": "Tariq had motive and opportunity on paper — but his hands were literally on a pump at the moment Vane died."
+  },
+  {
+    "id": "clue_rook_exoneration",
+    "title": "The Weight of a Buried Report",
+    "description": "Confronted, Rook admits Vane was blackmailing him with the old sabotage report — but that changes everything: Vane alive was Rook's protection, because the secret died only if Rook kept serving him. 'He was my leash and my shield,' Rook says. Killing Vane wouldn't free him; the report was locked in a dead-man's file set to release on Vane's death. Rook had the most to lose from this murder.",
+    "source": "rook",
+    "keywords": [
+      "sabotage",
+      "blackmail",
+      "old report",
+      "dead man's file",
+      "secret past",
+      "what did Vane have on you",
+      "coolant incident"
+    ],
+    "hint": "Vane's death was set to expose Rook automatically — the one man who needed Vane alive."
+  },
+  {
+    "id": "clue_misdirect_calloway",
+    "title": "The Episode That Never Aired",
+    "description": "June's cabin terminal holds a finished, unaired episode: 'The Architect's Lie,' scheduled to drop the morning after Vane died. It looks damning — she had motive, timing, and a denied cryo-bay request at 21:45. But the denial log is the point: June's access request was formally rejected and logged by MOTHER, and every second of her evening is accounted for by drone footage of her arguing with Rook outside the bay at 21:50, then returning to her cabin where cabin-corridor cams catch her at 22:10. Her 'motive' was a scoop, not a murder — and Vane dead kills her story's ending.",
+    "source": "calloway",
+    "keywords": [
+      "unaired episode",
+      "her story",
+      "denied access",
+      "recording",
+      "podcast",
+      "The Architect's Lie",
+      "her alibi"
+    ],
+    "hint": "The denied access request looks suspicious — until you realize it timestamps her exactly where she couldn't do harm."
+  },
+  {
+    "id": "clue_lindqvist_exoneration",
+    "title": "A Doctor's Impossible Choice",
+    "description": "Marta confesses to falsifying Vane's fitness assessments — but the medical records show something else: Vane's neural disease was progressing, and Marta had quietly scheduled a full cognitive decline disclosure to the council for next week, against his wishes. She was about to end his command herself, legally and permanently. Murdering him would destroy her career for nothing she couldn't already take from him.",
+    "source": "lindqvist",
+    "keywords": [
+      "his illness",
+      "diagnosis",
+      "falsified records",
+      "medical secret",
+      "disclosure",
+      "his condition",
+      "fitness reports"
+    ],
+    "hint": "Marta held a legal weapon against Vane far cleaner than murder — and was already planning to use it."
+  },
+  {
+    "id": "clue_staged_valve",
+    "title": "The Valve He Never Reached",
+    "description": "Vane's outstretched hand reaches for the manual oxygen valve — but the valve's dust seal is intact and its handle is cold-soaked, untouched for weeks. He never tried to turn it. The pose was arranged to sell the story of a man fighting a failing system. Whoever staged this wanted investigators to see a tragic malfunction and stop asking questions.",
+    "source": "scene",
+    "keywords": [
+      "oxygen valve",
+      "his hand",
+      "reaching",
+      "staged",
+      "dust seal",
+      "manual valve",
+      "body position"
+    ],
+    "hint": "The dying-man pose was theater — Vane was likely unconscious before the oxygen dropped, and the scene was dressed afterward."
+  }
+]

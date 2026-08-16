@@ -9,6 +9,7 @@
      node comfyui/generate.mjs --char shen --variants logo,calm
      node comfyui/generate.mjs --dry-run                 # 只打印将要生成的清单
      node comfyui/generate.mjs --list-models             # 列出 ComfyUI 可用模型 + 就位检查
+     node comfyui/generate.mjs --r2                      # 生成后上传 Cloudflare R2 并删除本地文件
    输出：public/characters/<caseId>/<charId>_<variant>.png
    出图策略：先 txt2img 生成 logo，再以 logo 为底做 img2img（denoise 0.62）
    派生 calm/uneasy/cornered 等表情变体，保证同一人物脸型一致。
@@ -18,7 +19,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { characters, NEGATIVE, buildPrompt, CHECKPOINT_ALIASES } from './config/characters.mjs';
-import { isR2Enabled, r2PutObject } from './cloudflareR2/r2.mjs';
+import { isR2Enabled, r2PutObject, r2GetObject } from './cloudflareR2/r2.mjs';
 
 const COMFY = process.env.COMFY_URL || 'http://127.0.0.1:8188';
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -42,6 +43,7 @@ function parseArgs(argv) {
     else if (a === '--variants') args.variants = String(argv[++i] || '').split(',').filter(Boolean);
     else if (a === '--denoise') args.denoise = Number(argv[++i]);
     else if (a === '--list-models') args.listModels = true;
+    else if (a === '--r2') args.r2 = true;
   }
   return args;
 }
@@ -230,7 +232,8 @@ async function downloadImage(img, destPath) {
   fs.writeFileSync(destPath, buf);
   if (isR2Enabled()) {
     try {
-      const key = `characters/${path.relative(path.join(ROOT, 'public'), destPath).split(path.sep).join('/')}`;
+      // key = characters/<caseId>/<file>.png（与 sync.mjs 一致，勿再加前缀）
+      const key = path.relative(path.join(ROOT, 'public'), destPath).split(path.sep).join('/');
       await r2PutObject(key, buf, 'image/png');
       console.log(`  R2 ↑ ${key}`);
     } catch (err) {
@@ -272,6 +275,7 @@ async function generateCharacter(char, args) {
   let logoBuf = null;
   let logoUploaded = false;
   const logoDest = path.join(caseDir, `${char.id}_logo.png`);
+  const produced = [];
 
   for (const variantKey of variants) {
     const { file, prefix } = workflowPaths(char, variantKey);
@@ -312,6 +316,24 @@ async function generateCharacter(char, args) {
     const secs = ((Date.now() - t0) / 1000).toFixed(0);
     console.log(`${img.filename} → ${path.relative(ROOT, dest)} (${(buf.length / 1024).toFixed(0)}KB, ${secs}s)`);
     if (isLogo) logoBuf = buf;
+    produced.push(dest);
+  }
+  /* --r2：downloadImage 已自动上传 R2，这里只删除本地文件（本地不存） */
+  if (args.r2 && produced.length) {
+    for (const dest of produced) {
+      const key = path.relative(path.join(OUT_DIR, '..'), dest).split(path.sep).join('/');
+      try {
+        const onR2 = await r2GetObject(key);
+        if (onR2) {
+          fs.rmSync(dest);
+          console.log(`  R2 ✓ ${key}（本地已删除）`);
+        } else {
+          console.warn(`  R2 ✗ ${key} 不存在于 R2，保留本地待修复`);
+        }
+      } catch (err) {
+        console.warn(`  R2 ✗ ${key} 校验失败（保留本地）：${err.message}`);
+      }
+    }
   }
 }
 
@@ -345,6 +367,10 @@ async function main() {
     return;
   }
   if (!args.buildOnly) await checkComfy();
+  if (args.r2 && !isR2Enabled()) {
+    console.error('--r2 需要 R2 已启用：.env 中 R2_IMAGES_ENABLED=1 且 ACCOUNT_ID/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY/BUCKET_NAME 齐全');
+    process.exit(1);
+  }
   if (args.listModels) {
     const available = await fetchAvailableCheckpoints();
     console.log('\nComfyUI 全部可用 checkpoint：');
@@ -377,9 +403,14 @@ async function main() {
       if (args.charId) process.exit(1);
     }
   }
-  const count = writeManifest();
-  console.log(`\n完成：${stats.failed.length ? stats.failed.length + ' 个失败，见上' : '全部成功'}；当前共 ${count} 张图像。`);
-  console.log('图像输出在 public/characters/（webui 自动读取），清单 public/characters/manifest.json。');
+  if (args.r2) {
+    console.log(`\n完成：${stats.failed.length ? stats.failed.length + ' 个失败，见上' : '全部成功'}；图像已上传 Cloudflare R2，本地未保留。`);
+    console.log('webui 通过 /characters/* 从 R2 读取（缺失回退本地/emoji）。');
+  } else {
+    const count = writeManifest();
+    console.log(`\n完成：${stats.failed.length ? stats.failed.length + ' 个失败，见上' : '全部成功'}；当前共 ${count} 张图像。`);
+    console.log('图像输出在 public/characters/（webui 自动读取），清单 public/characters/manifest.json。');
+  }
 }
 
 main().catch((err) => {

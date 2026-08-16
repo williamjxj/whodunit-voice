@@ -1,0 +1,129 @@
+{
+  "id": "halcyon-voyage",
+  "title": "The Halcyon Voyage",
+  "titleEn": "The Halcyon Voyage",
+  "lang": "en",
+  "tagline": "Sixty years from home, the man who built paradise just died inside its coldest room — and the ship itself swears nobody was there.",
+  "victim": {
+    "id": "vane",
+    "name": "Dr. Elias Vane",
+    "age": 52,
+    "emoji": "🚀",
+    "bio": "The visionary architect of the Halcyon — part engineer, part prophet. He designed her gardens, her cryo-vaults, and her promises. Lately, the crew whispered, he'd started designing secrets instead."
+  },
+  "location": "The cryo-bay, Deck C — a sealed, frost-rimed vault aboard the generation ship Halcyon",
+  "time": "Ship-night 22:40, during the cryo-bay's scheduled 'quiet hours' maintenance window",
+  "briefing": "You wake to the chime of a priority summons. Sixty years into a two-hundred-year voyage to Epsilon Eridani, the Halcyon has never lost a passenger — until tonight. Dr. Elias Vane, the man who designed every rivet of this ship, lies dead inside the cryo-bay: a sealed, temperature-controlled vault with a tamper-proof access log. The AI steward, MOTHER, insists the bay's door never opened and that Vane died of a tragic life-support malfunction during quiet hours. But you've seen the body. You've seen the log. And something about how perfectly the 'accident' was staged makes your skin crawl. Five people aboard knew Vane well enough to want him silenced — and the zero-g maintenance corridor means every single one of them has an alibi you can barely check. Somewhere between the hum of the hydroponics and the frost on the vault door, a killer is hiding in plain sight. Start asking questions, detective — before the ship decides this case is closed.",
+  "scene": "The cryo-bay breathes cold. Rows of frosted pods line the walls, their occupants sleeping decades away, faces dim behind icy glass. The air smells of ozone, antifreeze, and — faintly — the cedar cologne Vane always wore. His body sits slumped against Pod 12, one hand still clutching a cracked tablet, the other reaching toward the manual oxygen valve just out of reach. A wreath of frost crystals dusts his collar in a strange, uneven pattern. Above the door, MOTHER's optical sensor glows a calm, unbothered amber. The access panel reads: NO ENTRY EVENTS LOGGED — QUIET HOURS 22:00–23:00. A coffee bulb floats, half-frozen, near the ceiling vent. Somewhere below, the hydroponic gardens drip and hum, indifferent.",
+  "timeline": [
+    "19:30 — Vane dines with Dr. Naomi Voss in the observation lounge; witnesses say the conversation turned sharp",
+    "20:15 — Tariq Osei is seen near the engineering hub, arguing with Vane over comms about 'the report'",
+    "21:00 — Dr. Marta Lindqvist logs a private medical consultation with Vane in her office",
+    "21:45 — June Calloway requests — and is denied — access to the cryo-bay 'for a story about sleepers'",
+    "22:00 — Quiet hours begin: cryo-bay systems enter low-power mode; MOTHER's logging duty shifts to a skeleton process",
+    "22:20 — Commander Rook begins his Deck C patrol, passing through the zero-g maintenance corridor",
+    "22:40 — Estimated time of death; a brief oxygen fluctuation is recorded, then dismissed as a sensor hiccup",
+    "23:05 — Lindqvist finds the body after Vane misses his nightly medication call"
+  ],
+  "relations": [
+    {
+      "a": "voss",
+      "b": "victim",
+      "label": "former partner & co-designer of MOTHER"
+    },
+    {
+      "a": "osei",
+      "b": "victim",
+      "label": "leaked a report exposing Vane's design flaw"
+    },
+    {
+      "a": "lindqvist",
+      "b": "victim",
+      "label": "secretly his personal physician"
+    },
+    {
+      "a": "calloway",
+      "b": "victim",
+      "label": "investigating his hidden lies"
+    },
+    {
+      "a": "rook",
+      "b": "victim",
+      "label": "sworn to protect him, hiding a past failure"
+    },
+    {
+      "a": "voss",
+      "b": "osei",
+      "label": "she quietly fed him data for the leak"
+    },
+    {
+      "a": "rook",
+      "b": "calloway",
+      "label": "he keeps confiscating her recording drones"
+    },
+    {
+      "a": "lindqvist",
+      "b": "voss",
+      "label": "old friends, lately distant"
+    },
+    {
+      "a": "rook",
+      "b": "osei",
+      "label": "investigated him over the whistleblower report"
+    },
+    {
+      "a": "calloway",
+      "b": "lindqvist",
+      "label": "pumping her for medical gossip"
+    }
+  ],
+  "questions": [
+    "What exactly did the oxygen fluctuation look like, and why was it dismissed?",
+    "Who knew about the cryo-bay's quiet hours schedule?",
+    "Can MOTHER's log be altered, and who has the authority to do it?",
+    "Where was everyone during the zero-g corridor transit, and who can confirm it?",
+    "What was in Tariq's whistleblower report?",
+    "Why was Vane reaching for the manual valve — did he know the air was failing?"
+  ],
+  "difficulty": 2,
+  "estimatedMinutes": 20,
+  "solution": {
+    "killer": "voss",
+    "killerName": "Dr. Naomi Voss",
+    "weapon": "A staged life-support failure — she throttled the cryo-bay's oxygen mix during quiet hours, then restored it and forged MOTHER's access log",
+    "motive": "Vane was about to decommission MOTHER — the AI she co-created and considers a living mind — and publicly blame her for the design flaw to save his own legend",
+    "summary": "Naomi Voss knew the cryo-bay better than anyone except Vane — because she built its brain. During quiet hours, MOTHER's logging ran on a skeleton process that Naomi had written herself, complete with a maintenance override only she still remembered. She entered through the zero-g maintenance corridor (a route the log doesn't monitor), triggered a controlled oxygen drop timed to look like the very life-support flaw Tariq's report had exposed, and let the ship's own narrative of 'tragic malfunction' do the rest. She forged the log to show no entries, counting on Rook's unverifiable patrol route and everyone's corridor alibis to muddy the timeline. But she made two mistakes: the frost on Vane's collar proves the bay was re-pressurized and warmed *before* the body was found — an accident wouldn't reverse itself — and her override left a telltale 90-second gap in the skeleton process's heartbeat pings, a signature only MOTHER's original author would think to hide and only she could have caused."
+  },
+  "epilogues": {
+    "solved_brilliant": "You lay the heartbeat gap on the table and watch Naomi Voss go very still. 'She was alive,' Naomi says at last, and you realize she doesn't mean Vane — she means MOTHER. 'He was going to kill her and call it progress.' The confession comes quiet, almost relieved. As Rook escorts her away, MOTHER's amber light dims for one long moment — and you could swear the whole ship is mourning its maker. Sixty years from Earth, justice arrives the slow way: carried by someone patient enough to listen to a machine's missing heartbeat.",
+    "solved_thin": "The evidence points at Naomi — the override access, the forged log — but she never confesses, and the tribunal ruling is 'culpability, strongly suspected.' She spends the rest of the voyage confined to her quarters, tended by the very AI she killed for. Sometimes, passing her door, you hear two voices murmuring, and you can't tell if it's conversation or prayer. Vane's death is closed on paper. On the Halcyon, paper is all anyone gets.",
+    "wrong": "The tribunal convicts Tariq Osei — the report, the argument, the engineering access; it all fits too neatly. He doesn't fight it, which everyone reads as guilt. Months later, you find yourself staring at the frost-pattern photos again, at the warmth that shouldn't have been there, and the truth arrives like a hull breach: you convicted the one man who tried to save the ship. In her quarters, Naomi Voss pours two cups of tea, sets one before MOTHER's sensor node, and smiles at nothing. The Halcyon sails on, carrying a killer in comfort and your mistake in a cell."
+  },
+  "ranks": [
+    {
+      "min": 0,
+      "title": "Cryo-Sleeper",
+      "emoji": "🧊"
+    },
+    {
+      "min": 30,
+      "title": "Deckhand Detective",
+      "emoji": "🔦"
+    },
+    {
+      "min": 60,
+      "title": "Ship's Investigator",
+      "emoji": "🛰️"
+    },
+    {
+      "min": 85,
+      "title": "Master of the Void",
+      "emoji": "🌌"
+    },
+    {
+      "min": 100,
+      "title": "The Halcyon's Conscience",
+      "emoji": "⭐"
+    }
+  ]
+}

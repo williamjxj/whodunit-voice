@@ -4,7 +4,7 @@
 
 | What | Needed? | Why |
 |---|---|---|
-| Node.js >= 18（实测 v22.21.1） | **Yes** | 核心运行时（内置 http/fetch）；**多音色 TTS 需 Node >= 22**（原生 WebSocket），否则自动回退浏览器语音 |
+| Node.js >= 18（实测 v22.21.1） | **Yes** | 核心运行时（内置 http/fetch）；**多音色 TTS 需 Node >= 22**（原生 WebSocket），否则自动回退浏览器语音；**用户数据存档需 Node >= 22.5**（内置 node:sqlite，否则分数/存档/排行榜端点返回 503） |
 | `npm install` | **No** | 零第三方依赖，跳过 |
 | .env 文件 | **Required** | DeepSeek API key（复制 .env.example） |
 | DeepSeek API key | **Required** | 嫌疑人扮演与法官判定 |
@@ -13,7 +13,7 @@
 | 本地 ComfyUI（`127.0.0.1:8188`） | **可选** | 生成人物画像用（国风4 / Animagine XL 4.0，见 [comfyui/README.md](../comfyui/README.md)）；已提交 76 张图，不跑 ComfyUI 也不影响游戏 |
 | 浏览器（Chrome/Edge/Safari） | **Yes** | 语音识别/合成走浏览器原生 Web Speech API |
 | Docker | **No** | 未使用 |
-| 数据库 (PostgreSQL/Redis/SQLite) | **No** | 案件数据为本地 JSON 文件 |
+| 数据库（内置 node:sqlite） | **Yes（可选）** | 用户分数/结果/进度存 `data/whodunit.db`（Node 22.5+ 自带，零安装）；案件数据仍为本地 JSON 文件 |
 | 云服务 | **No** | 本地运行；DeepSeek（对话）+ DashScope（TTS，可选）为外部调用 |
 | 麦克风权限 | **Required（语音功能）** | 浏览器询问授权；无麦克风可纯打字 |
 
@@ -26,6 +26,7 @@ http        — Web 服务器
 fs / path   — 静态文件与数据读取
 url         — 路由解析
 fetch       — 调用 DeepSeek API（Node 18+ 内置）
+node:sqlite — 用户数据：分数/存档/排行榜（Node 22.5+ 内置，可选）
 WebSocket   — 调用 DashScope Sambert TTS（Node 22+ 内置，可选）
 crypto      — 生成 TTS 任务 UUID（node:crypto）
 ```
@@ -35,7 +36,8 @@ crypto      — 生成 TTS 任务 UUID（node:crypto）
 | 数据 | 位置 | 类型 |
 |---|---|---|
 | 案件/嫌疑人/线索 | `data/cases/<caseId>/*.json` | 本地 JSON（只读，启动时载入内存） |
-| 游戏进度（线索/分数/审问记录/提示/情绪） | 浏览器 localStorage | 单槽存档，随案件自动保存 |
+| 游戏进度/分数/结果 | `data/whodunit.db`（node:sqlite，已 gitignore） | 多案并行存档，跨刷新续玩（身份用浏览器内 playerId） |
+| 身份与 UI 偏好（playerId/音效/TTS/侦探形象） | 浏览器 localStorage | 非游戏数据 |
 | API key | `.env`（已 gitignore） | 仅服务端读取 |
 
 ## 环境变量
@@ -57,7 +59,8 @@ cp .env.example .env   # 然后填入真实 key
 
 ## 明确不需要的东西
 
-- 不需要 Docker、数据库、Redis、消息队列、任何 npm 包、构建工具、外网部署。
+- 不需要 Docker、Redis、消息队列、第三方数据库服务、任何 npm 包、构建工具、外网部署
+  （用户数据用 Node 内置 node:sqlite，无需安装任何东西）。
 - 不需要任何 npm 包、构建工具、外网部署。
 - 语音识别由浏览器内置完成；语音合成按优先级：阿里云 Sambert（可选 Key）→
   微软 Edge TTS（免费，无需 Key）→ 浏览器 speechSynthesis 兜底。
