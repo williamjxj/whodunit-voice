@@ -118,12 +118,26 @@ main { max-width: 980px; margin: 0 auto; padding: 24px 18px 60px; }
 .relations-box h3 { color: var(--gold); font-size: 14px; margin-bottom: 8px; }
 .relations-map { max-width: 440px; margin: 0 auto; }
 .relations-map svg { width: 100%; height: auto; display: block; }
-.relations-map line { stroke: var(--border); stroke-width: 1.5; }
+.relations-map .rel-edge { stroke: var(--border); stroke-width: 1.5; }
+.relations-map .rel-arrow-head { fill: var(--gold); }
 .relations-map .rel-node circle { fill: var(--card-2); stroke: var(--gold); stroke-width: 1.5; }
 .relations-map .rel-node.victim circle { fill: rgba(212, 175, 55, 0.16); stroke: var(--gold); stroke-width: 2; }
-.relations-map .rel-node text { font-size: 21px; text-anchor: middle; dominant-baseline: central; }
+.relations-map .rel-node .rel-emoji { font-size: 21px; text-anchor: middle; dominant-baseline: central; }
+.relations-map .rel-node .rel-name { font-size: 11px; fill: var(--text); text-anchor: middle; font-weight: bold; }
+.relations-map .rel-node.victim .rel-name { fill: var(--gold-2); }
+.relations-map .rel-edge-label text {
+  font-size: 10.5px;
+  fill: var(--gold-2);
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
 .relations-list { list-style: none; margin-top: 10px; display: grid; gap: 6px; }
 .relations-list li { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.relations-list .rel-pair { color: var(--text); }
+.relations-list .rel-arrow { color: var(--gold); margin: 0 4px; }
 .relations-list .rel-label { color: var(--gold-2); }
 
 .resume-banner {
@@ -140,6 +154,7 @@ main { max-width: 980px; margin: 0 auto; padding: 24px 18px 60px; }
 
 .timeline h3 { color: var(--muted); font-size: 14px; margin-bottom: 10px; }
 .timeline ol { padding-left: 22px; display: grid; gap: 7px; color: var(--text); font-size: 14px; line-height: 1.5; }
+.briefing-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0 4px; }
 .hint-note { margin: 18px 0; color: var(--gold-2); font-size: 14px; }
 
 .btn {
@@ -158,6 +173,7 @@ main { max-width: 980px; margin: 0 auto; padding: 24px 18px 60px; }
 .btn-primary { background: linear-gradient(135deg, #8a6d1f, #d4af37); color: #17120a; border: none; font-weight: bold; }
 .btn-danger { background: linear-gradient(135deg, #7a2419, #c0392b); border: none; font-weight: bold; }
 .btn-ghost { background: transparent; }
+.btn.playing { outline: 2px solid var(--gold); outline-offset: 1px; color: var(--gold-2); }
 
 .lobby-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
 .lobby-actions { display: flex; gap: 10px; }
@@ -262,6 +278,22 @@ main { max-width: 980px; margin: 0 auto; padding: 24px 18px 60px; }
 .mic-btn.listening { background: var(--red); border-color: var(--red); animation: pulse 1.2s infinite; }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.6); } 70% { box-shadow: 0 0 0 14px rgba(192, 57, 43, 0); } 100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0); } }
 .mic-status { margin-top: 10px; font-size: 13px; color: var(--muted); min-height: 18px; }
+.tts-status { margin-top: 6px; font-size: 12px; color: var(--muted); min-height: 16px; }
+.tts-status.on { color: var(--blue); animation: ttsPulse 1.3s ease-in-out infinite; }
+@keyframes ttsPulse { 0%, 100% { opacity: 0.65; } 50% { opacity: 1; } }
+.voice-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--gold-2);
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+.voice-tag .voice-gender { opacity: 0.75; font-size: 11px; }
 
 .drawer {
   position: fixed;

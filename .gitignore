@@ -31,3 +31,4 @@ Desktop.ini
 .codegraph
 .omo/
 .playwright-mcp/
+.playwright-cli/

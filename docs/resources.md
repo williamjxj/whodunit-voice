@@ -4,14 +4,16 @@
 
 | What | Needed? | Why |
 |---|---|---|
-| Node.js >= 18（实测 v22.21.1） | **Yes** | 核心运行时（内置 http/fetch，无需依赖） |
+| Node.js >= 18（实测 v22.21.1） | **Yes** | 核心运行时（内置 http/fetch）；**多音色 TTS 需 Node >= 22**（原生 WebSocket），否则自动回退浏览器语音 |
 | `npm install` | **No** | 零第三方依赖，跳过 |
 | .env 文件 | **Required** | DeepSeek API key（复制 .env.example） |
 | DeepSeek API key | **Required** | 嫌疑人扮演与法官判定 |
+| DashScope API key（`DASHSCOPE_API_KEY`） | **可选，强烈建议** | 多音色 Sambert TTS（不配则回退浏览器单一语音） |
+| Edge TTS（`EDGE_TTS_ENABLED=1`） | **可选（默认开）** | 免费多音色源（322+ 音色，无需 Key）；无 DashScope Key 时自动作为主音色源 |
 | 浏览器（Chrome/Edge/Safari） | **Yes** | 语音识别/合成走浏览器原生 Web Speech API |
 | Docker | **No** | 未使用 |
 | 数据库 (PostgreSQL/Redis/SQLite) | **No** | 案件数据为本地 JSON 文件 |
-| 云服务 | **No** | 本地运行；DeepSeek 为唯一外部调用 |
+| 云服务 | **No** | 本地运行；DeepSeek（对话）+ DashScope（TTS，可选）为外部调用 |
 | 麦克风权限 | **Required（语音功能）** | 浏览器询问授权；无麦克风可纯打字 |
 
 ## 依赖清单
@@ -23,6 +25,8 @@ http        — Web 服务器
 fs / path   — 静态文件与数据读取
 url         — 路由解析
 fetch       — 调用 DeepSeek API（Node 18+ 内置）
+WebSocket   — 调用 DashScope Sambert TTS（Node 22+ 内置，可选）
+crypto      — 生成 TTS 任务 UUID（node:crypto）
 ```
 
 ## 数据存储
@@ -44,13 +48,18 @@ cp .env.example .env   # 然后填入真实 key
 | `DEEPSEEK_API_KEY` | DeepSeek API 认证（必填） |
 | `DEEPSEEK_MODEL` | 模型 ID，默认 `deepseek-v4-flash` |
 | `DEEPSEEK_BASE_URL` | API 地址，默认 `https://api.deepseek.com` |
+| `DASHSCOPE_API_KEY` | 阿里云百炼 API Key，用于多音色 TTS（Sambert）。不配置时前端回退浏览器 speechSynthesis |
+| `DASHSCOPE_TTS_URL` | Sambert WebSocket 地址，默认 `wss://dashscope.aliyuncs.com/api-ws/v1/inference` |
+| `EDGE_TTS_ENABLED` | 微软 Edge TTS 免费音色源开关，默认 `1`（开启）；`0` 关闭 |
 | `PORT` | 服务端口，默认 4310 |
 | `HOST` | 监听地址，默认 127.0.0.1；当为 127.0.0.1 时服务端同时绑定 IPv6 `[::1]`（macOS 浏览器经 IPv6 访问 localhost，勿删） |
 
 ## 明确不需要的东西
 
 - 不需要 Docker、数据库、Redis、消息队列、任何 npm 包、构建工具、外网部署。
-- 不需要第三方语音 API（识别/合成均由浏览器内置完成）。
+- 不需要任何 npm 包、构建工具、外网部署。
+- 语音识别由浏览器内置完成；语音合成按优先级：阿里云 Sambert（可选 Key）→
+  微软 Edge TTS（免费，无需 Key）→ 浏览器 speechSynthesis 兜底。
 
 ## 灵感来源 (Inspiration)
 

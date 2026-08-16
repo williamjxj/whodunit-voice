@@ -12,11 +12,16 @@
 
 ```bash
 cd /Users/william.jiang/my-tests/my-fun/whodunit-voice
-cp .env.example .env        # 填入 DEEPSEEK_API_KEY
+cp .env.example .env        # 填入 DEEPSEEK_API_KEY（可选：DASHSCOPE_API_KEY 启用多音色配音）
 node server.js              # Node >= 18，零依赖，无需 npm install
 ```
 
 打开 http://127.0.0.1:4310 ，选择一个案件开始。
+
+> 🎙️ **多角色智能配音**：15 名嫌疑人各配独立音色——男角色男声、女角色女声，
+> 并按年龄/性格微调语速与音调；法官、简报旁白也各有专属声音。
+> 音色源自动选择：阿里云 Sambert（可选 Key）→ **微软 Edge TTS（免费，322+ 音色，无需 Key）**
+> → 浏览器语音兜底。零配置也能立即听到多角色声音。
 
 ## 内置案件
 
@@ -42,21 +47,35 @@ UI、语音识别与朗读语言自动跟随案件语言（en-US / zh-CN）。
 进度会自动保存在浏览器本地：刷新或关页后，案件卡片会显示 ▶ 继续，简报页可一键续玩。
 最佳得分按案件记录，展示在案件卡片与判决页。
 
+### 声音玩法
+
+- **多音色审问**：进入审问后，嫌疑人头部显示音色标签（如 🎙 磁性男声 ♂）。
+  每句回复用该嫌疑人自己的声音朗读（服务端 Sambert 合成，Web Audio 播放）。
+- **免费音色源**：未配置阿里云 Key 时自动使用微软 Edge TTS（322+ 免费音色），
+  同一套嫌疑人音色人设自动映射到 Edge 音色（晓晓/云健/云希/Aria/Brian……）。
+- **法官宣判**：指控提交后，判决陈词由威严的法官音色朗读。
+- **听案件简报**：简报页新增「🔊 听案件简报」按钮，旁白音色朗读案情与案发现场。
+- **状态指示**：合成/播放期间，输入框下方显示「正在合成语音…… · 音色名」。
+- **语音提问**：点 🎤 说话（Chrome/Edge/Safari），或打字；回复朗读可用工具栏 🔊 开关关闭。
+
 ## 架构
 
 ```
 浏览器 (语音识别/合成 + i18n UI)
    └─ fetch → Node 零依赖服务器 (server.js)
-                 └─ DeepSeek API (deepseek-v4-flash)
+                 ├─ DeepSeek API (deepseek-v4-flash)   角色扮演 + 法官判定
+                 ├─ Edge TTS (WebSocket, 免费)          多音色语音合成（默认）
+                 └─ DashScope Sambert (WebSocket TTS)   高音质多音色（可选 Key）
 ```
 
 - 案件包：`data/cases/<caseId>/`（case.json / suspects.json / clues.json，可插拔）
-- 后端：`server.js`（静态服务 + /api/cases + /api/case + /api/chat + /api/accuse + /api/health）
+- 后端：`server.js`（静态服务 + /api/cases + /api/case + /api/chat + /api/accuse + /api/tts + /api/tts/voices + /api/health）
 - 前端：`public/index.html`、`public/styles.css`、`public/app.js`（含 I18N 字典）
 
 ## 关键设计
 
 - **API key 安全**：DeepSeek key 只存在服务端 `.env`，前端通过同源 API 代理调用。
+- **多音色配音**：嫌疑人音色/语速/音调写在 `suspects.json`，`/api/case` 只透传音色信息（不含 secret/guilt）。
 - **真相防作弊**：凶手/动机只存服务端，`/api/case` 不下发 solution/guilt/secret。
 - **多案件可插拔**：新增案件 = 新建 `data/cases/<id>/` 三个 JSON，无需改代码。
 - **线索确定性**：线索解锁是关键词规则匹配，不依赖 LLM，行为可预期。
@@ -67,7 +86,8 @@ UI、语音识别与朗读语言自动跟随案件语言（en-US / zh-CN）。
 
 ## 常见问题
 
-- **听不到语音回复**：点 🔊 确认开启；允许浏览器使用语音合成。
+- **听不到语音回复**：点 🔊 确认开启；默认走服务端 Edge TTS 多音色（免费最稳），
+  想用阿里云 Sambert 再配 `DASHSCOPE_API_KEY`；两者都不可用时才回退浏览器语音。
 - **语音识别不工作**：Firefox 不支持 Web Speech 识别，请用 Chrome/Edge/Safari，或直接打字。
 - **"证人突然沉默（DeepSeek 不可用）"**：API key 无效、额度不足或网络问题，检查 `.env` 后重试。
 - **想重玩**：结局页点"再玩一次"；想换案件点"换个案件"。

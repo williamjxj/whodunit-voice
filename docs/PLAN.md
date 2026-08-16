@@ -113,3 +113,75 @@
 - [x] 英文案件切换后嗓音回退 Samantha（en-US）
 - [x] 🔊/🔇 开关切换生效，刷新页面后状态保持（localStorage '0'/'1'），console 零错误
 - [x] 宣传海报产出：ComfyUI 本机生成 noir 背景 → HTML/CSS 叠加中文文案 → Playwright 截图 1200×1600 → 嵌入 README hero 图（含两轮视觉质检）
+
+## v0.5 多角色智能配音（2026-08-15）
+
+用户反馈：回答只有文字没有声音，浏览器 speechSynthesis 在 macOS 上不可靠，且所有角色同音色。
+要求：不同人不同声音、男声/女声智能匹配、STT+TTS 都要真正可用、调研可集成的多音色语音库。
+
+**方案调研结论**
+- Kimi API 官方不支持 TTS/ASR ❌；ElevenLabs 免费额度小且国内访问受限 ⚠️；
+  Edge-TTS 免费但依赖网络与额外脚本 ⚠️；CosyVoice 角色化最强但主流走 WebSocket/价格高 ⚠️。
+- 主选 **阿里云百炼 Sambert**：21 个注册音色（9×48kHz 中文 + 特色 16k + 7 美式英语 + 法语），
+  官方 WebSocket 协议（`wss://dashscope.aliyuncs.com/api-ws/v1/inference`），
+  Node 22+ 原生 WebSocket 客户端即可接入，保持零 npm 依赖 ✅。
+
+**实现内容**
+| # | 内容 | 说明 |
+|---|---|---|
+| 1 | server.js 接入 Sambert TTS | `DASHSCOPE_API_KEY`；`POST /api/tts`（WAV 返回，1000 字上限、45s 超时、内存缓存≤64）；`GET /api/tts/voices` 音色注册表；`/api/health` 上报 TTS 状态 |
+| 2 | 嫌疑人音色数据 | 三案 15 名嫌疑人全部配置 `voice` + `voiceRate` + `voicePitch`（男角色男声、女角色女声、按性格微调语速音调） |
+| 3 | 前端多音色播放 | `speak()` 优先 fetch `/api/tts` → `decodeAudioData` + BufferSource 播放；失败/无 Key 自动回退浏览器 speechSynthesis；`stopSpeaking()` 中断竞态控制 |
+| 4 | 情境配音 | 审问回复用嫌疑人专属音色；判决由法官音色朗读（zh: 新闻男声知德 / en: Cally）；新增「🔊 听案件简报」旁白朗读 |
+| 5 | 状态与标签 | 合成中/播放中状态指示（音色名）；嫌疑人头部音色标签（🎙 + ♂/♀） |
+| 6 | 反作弊与兼容 | `/api/case` 仅透传 voice/voiceRate/voicePitch；Node 18 无原生 WebSocket 时自动回退浏览器语音；i18n 新增文案 en/zh 双写 |
+
+**验证记录**
+- [x] `node --check server.js` / `public/app.js` 通过；三个 suspects.json 全部合法且含 voice 字段
+- [x] 启动后 `/api/health` 返回 `tts.enabled:false`（未配 DASHSCOPE_API_KEY，符合预期降级）
+- [x] `GET /api/tts/voices` 返回 21 音色 + enabled:false；`POST /api/tts` 无 Key 时 502 + 明确报错文案
+- [ ] 真实语音合成待用户补 `DASHSCOPE_API_KEY` 后端到端验证（WAV 字节 + 浏览器播放 + 15 音色逐一试听）
+
+## v0.6 免费音色源：Edge TTS（2026-08-15）
+
+用户询问 Edge TTS 支持 300+ 声音吗、能否直接使用（免费）。
+
+**调研与实测**
+- live 端点（speech.platform.bing.com voices/list）返回 **322 音色 / 142 locale / 75 语言**
+  （zh-CN 8 个、en-US 17 个，全部 neural，免费无 Key）。
+- 原生 Node WebSocket 实测（零依赖）：中文「晓晓」、英文 Emma、prosody 语速/音调调节，
+  三次合成全部成功，输出合法 MP3（24kHz/48kbps/mono，文件 `file` 校验通过）。
+
+**实现**
+| # | 内容 | 说明 |
+|---|---|---|
+| 1 | `EDGE_VOICES` 精选注册表 | 40 音色（zh-CN 全 8 + en-US 16 + 英/法/日/韩/德/西/意/俄风味） |
+| 2 | `SAMBERT_TO_EDGE` 映射 | 21 Sambert 音色 → 同性别/年龄 Edge 音色，嫌疑人音色人设在免费源下不丢 |
+| 3 | `synthesizeEdgeSpeech()` | 原生 WebSocket + `Sec-MS-GEC` 令牌 + `speech.config`/`ssml` 消息 + MP3 流解析；时钟偏差自动校准重试一次 |
+| 4 | 自动优先级 | Sambert（有 Key）→ Edge（免费）→ 浏览器语音；`EDGE_TTS_ENABLED=0` 可关 |
+| 5 | 前端适配 | `/api/tts/voices` 新结构（activeProvider + sambertToEdge）；`activeVoiceId()` 把嫌疑人 Sambert 音色映射到活跃供应商 |
+
+**验证记录**
+- [x] `node --check server.js` / `public/app.js` 通过
+- [x] `/api/tts/voices` 返回双注册表 + activeProvider=edge（无 DashScope Key 时）
+- [x] `POST /api/tts`（Edge 中文「晓晓」+ 英文）返回合法 MP3（X-TTS-Provider: edge）
+- [x] 浏览器实测：钱伯年音色标签显示「🎙 云健 ♂」（磁性男声 → Edge 云健）；朗读触发
+  「正在播放…… · 云夏」状态（Edge 合成 + Web Audio 播放链路贯通）
+- [x] `provider:'sambert'` 无 Key 时优雅降级：自动用 Edge 合成，返回 200 + MP3（不再 502）
+- [x] 数据一致性：15 名嫌疑人全部有 Edge 映射，21 个映射目标全部在 EDGE_VOICES 注册表内
+
+## v1.0.1 修复：人物关系页（2026-08-15）
+
+用户反馈：关系图只有 emoji 节点与裸线，没有名字和关系标签；列表 `A — label B` 格式易读反。
+
+| 问题 | 修复 |
+|---|---|
+| 图里缺名字 | 每个节点下方加名字（受害者金色高亮） |
+| 图上没关系 | 连线加箭头（A→B）+ 中点关系标签（图上超 24 字符截断，悬停 `<title>` 看全文） |
+| 列表易读反 | 改为 `A → B：关系` 清晰格式，关系文字金色区分 |
+
+验证记录：
+- [x] 玉簪案：6 节点名字 + 8 条箭头连线 + 8 条列表，格式 `赵文远 → 沈月娥：正室夫人，进门三十年`
+- [x] Sterling Affair：英文长标签图上截断为 `CFO and business partner…`，列表保留全文
+- [x] `node --check public/app.js` 通过；无 console 报错
+- [x] 反作弊不变：/api/case 仍只透传 voice 字段；无 secret/guilt/solution

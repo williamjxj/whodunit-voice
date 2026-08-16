@@ -65,17 +65,21 @@
 
 ```
 浏览器 (index.html / app.js / styles.css)
-   |  fetch /api/case, /api/chat, /api/accuse
+   |  fetch /api/case, /api/chat, /api/accuse, /api/tts, /api/tts/voices
    v
 Node 零依赖服务器 (server.js, 内置 http)
    |  DeepSeek chat completions (deepseek-v4-flash)
+   |  DashScope Sambert WebSocket（多音色 TTS）
    v
-DeepSeek API (api.deepseek.com)
+DeepSeek API (api.deepseek.com) / DashScope (dashscope.aliyuncs.com)
 ```
 
-- 语音识别/合成：浏览器 Web Speech API（en-US），无服务端语音成本。
+- 语音识别：浏览器 Web Speech API（en-US / zh-CN，跟随案件语言）。
+- 语音合成：优先服务端 DashScope Sambert 多音色（WAV → Web Audio 播放），
+  未配置 Key 或失败时回退浏览器 speechSynthesis（语言匹配）。
 - API key：只存在于服务端 .env，前端不可见。
-- 依赖：Node >= 18 内置 http/fs/fetch，零 npm 包。
+- 依赖：Node >= 18 内置 http/fs/fetch；多音色 TTS 需要 Node 22+ 的原生 WebSocket
+  （Node 18 无全局 WebSocket，会回退浏览器语音）。仍为零 npm 包。
 
 ## 8. API 契约
 
@@ -86,6 +90,8 @@ DeepSeek API (api.deepseek.com)
 | GET /api/case | `?caseId=` | case 元数据（含 scene/relations/questions/难度/时长）+ suspects（不含 secret/guilt）+ clues |
 | POST /api/chat | `{caseId, suspectId, messages, question}` | `{reply, mood, tell}`（扮演回复 + 审问状态观察） |
 | POST /api/accuse | `{caseId, suspectId, motive, evidence[]}` | `{verdict, truth, epilogue}` |
+| GET /api/tts/voices | - | `{enabled, provider, defaultVoice, voices[]}`（音色注册表） |
+| POST /api/tts | `{text, voice, rate?, pitch?, provider?}` | `audio/wav`（Sambert）或 `audio/mpeg`（Edge TTS），文本 ≤1000 字符 |
 
 - 对话历史限制最近 12 条，单条 600 字符，防止上下文膨胀。
 - 超时 45 秒；DeepSeek 失败返回 502，前端提示重试。
@@ -170,3 +176,48 @@ DeepSeek API (api.deepseek.com)
 - `poster/poster.png`（1200×1600 竖版）：noir 侦探风背景由本机 ComfyUI（Juggernaut XL）生成，
   中文文案由 `poster/poster.html`/`poster.css` 程序化叠加（AI 不直出文字，避免乱码），
   Playwright 截图导出；已作为 hero 图嵌入 README 首屏。
+
+## 15. v0.5 更新（多角色智能配音：DashScope Sambert）
+
+**痛点修复**
+- 旧版依赖浏览器 speechSynthesis，macOS/Chrome 常无声，且所有人共用同一默认音色。
+- v0.5 引入服务端多音色 TTS：阿里云百炼 Sambert（WebSocket 协议，Node 原生 WebSocket，
+  零 npm 依赖），21 个音色注册在 `server.js` 的 `TTS_VOICES`。
+
+**音色分配（智能配音）**
+- 每个嫌疑人在 `suspects.json` 声明 `voice`（音色 id）+ `voiceRate`（0.5–2 语速）+
+  `voicePitch`（0.5–2 音调），按性别/年龄/性格映射：男角色用男声、女角色用女声；
+  少女用活泼萝莉音、老江湖用悬疑解说音、法官用沉稳新闻男声。
+- 三个案件共 15 名嫌疑人全部配置独立音色与语速/音调微调（同音色不同人设也可区分）。
+
+**播放链路**
+- `POST /api/tts`：`{text, voice, rate, pitch}` → DashScope Sambert 合成 → WAV 返回。
+- 前端 `speak()` 优先拉取服务端 WAV，`AudioContext.decodeAudioData` + BufferSource 播放；
+  未配置 `DASHSCOPE_API_KEY` 或合成失败时，自动回退浏览器 speechSynthesis（语言匹配）。
+- 新增状态指示：合成中/播放中显示「正在合成语音…… · 音色名」；嫌疑人卡片显示音色标签。
+- 新增「听案件简报」按钮（旁白音色朗读简报 + 现场描写）、判决由法官音色朗读。
+
+**安全与约束**
+- `/api/case` 只透传 `voice/voiceRate/voicePitch`，secret/guilt/solution 仍不下发（反作弊不变）。
+- TTS 文本截断 1000 字符、45s 超时、内存缓存（≤64 条）；无 Key 时 502 + 前端回退。
+
+## 16. v0.6 更新（免费音色源：Edge TTS）
+
+用户询问微软 Edge TTS 是否支持 300+ 音色且可直接使用。
+实测确认：**支持，且可直接使用**——live 端点当前返回 322 个音色 / 142 个 locale
+（zh-CN 8 个、en-US 17 个），无需 API Key，完全免费。
+
+**协议（零依赖原生实现）**
+- `wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1`
+  + `TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4` + `Sec-MS-GEC`（sha256
+  五分组取整的 Windows ticks + token）+ `Sec-MS-GEC-Version` + `ConnectionId`。
+- 文本帧：先发 `Path:speech.config`，再发 `Path:ssml`（`<prosody rate/pitch>` 控制语速音调）。
+- 二进制帧：前 2 字节头长，随后 `Path:audio` + MP3 数据；`Path:turn.end` 结束。
+- 系统时钟偏差时服务端 403：抓取 `Date` 头校准一次后重试（参考开源 edge-tts 的 DRM 逻辑）。
+
+**集成方式**
+- `server.js` 新增 `EDGE_VOICES`（精选 40 音色：zh-CN 全 8 个、en-US 16 个、英式/法/日/韩/德/西/意/俄
+  风味音色）与 `SAMBERT_TO_EDGE` 映射（21 个 Sambert 音色 → 同性别/年龄 Edge 音色），
+  让 15 名嫌疑人在免费源下仍然"男声男、女声女、各有人设"。
+- 自动优先级：有 `DASHSCOPE_API_KEY` 用 Sambert → 否则 Edge TTS（免费）→ 否则浏览器语音。
+  `EDGE_TTS_ENABLED=0` 可关闭 Edge 源。`/api/tts/voices` 返回双注册表 + `activeProvider`。

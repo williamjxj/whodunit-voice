@@ -64,6 +64,11 @@
       load_fail: 'Failed to load the case. Is the server running?',
       retry: 'Retry',
       tts_label: 'Voice replies',
+      tts_preparing: 'Preparing voice…',
+      tts_speaking: 'Speaking…',
+      tts_fallback: 'Server voice unavailable – using browser voice.',
+      listen_briefing: '🔊 Listen to the briefing',
+      stop_reading: '⏹ Stop reading',
       continue_investigation: 'Continue investigation',
       continue_label_short: 'Continue',
       discard_save: 'Discard save',
@@ -161,6 +166,11 @@
       load_fail: '案件加载失败。服务器在运行吗？',
       retry: '重试',
       tts_label: '语音播报',
+      tts_preparing: '正在合成语音……',
+      tts_speaking: '正在播放……',
+      tts_fallback: '服务器语音不可用，改用浏览器语音。',
+      listen_briefing: '🔊 听案件简报',
+      stop_reading: '⏹ 停止朗读',
       continue_investigation: '继续调查',
       continue_label_short: '继续',
       discard_save: '放弃存档',
@@ -408,6 +418,7 @@
   /* ---- case select ---- */
   async function init() {
     state.saved = loadSaved();
+    initTts(); // non-blocking; voice list arrives whenever ready
     try {
       const res = await fetch('/api/cases');
       if (!res.ok) throw new Error('failed to load cases');
@@ -521,29 +532,52 @@
         pos.set(id, { x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) });
       }
     });
+    const nodeRadius = (id) => (id === 'victim' ? 34 : 28);
+    const truncate = (text, max) => (String(text).length > max ? `${String(text).slice(0, max)}…` : String(text));
     const lines = rels.map((rel) => {
       const a = pos.get(rel.a);
       const b = pos.get(rel.b);
       if (!a || !b) return '';
-      return `<line x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" />`;
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len;
+      const uy = dy / len;
+      // Shorten the line so the arrowhead lands just outside the target node.
+      const x1 = a.x + ux * nodeRadius(rel.a);
+      const y1 = a.y + uy * nodeRadius(rel.a);
+      const x2 = b.x - ux * nodeRadius(rel.b);
+      const y2 = b.y - uy * nodeRadius(rel.b);
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2;
+      const label = truncate(rel.label, 24);
+      return `<line class="rel-edge" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" marker-end="url(#rel-arrow)"/>
+        <g class="rel-edge-label"><title>${escapeHtml(rel.a === 'victim' ? state.caseData.victim.name : (meta.get(rel.a)?.name || rel.a))} → ${escapeHtml(meta.get(rel.b)?.name || rel.b)}：${escapeHtml(rel.label)}</title>
+        <text x="${mx.toFixed(1)}" y="${my.toFixed(1)}">${escapeHtml(label)}</text></g>`;
     }).join('');
     const nodes = [...pos].map(([id, p]) => {
       const m = meta.get(id) || { emoji: '❓', name: id };
       const cls = id === 'victim' ? 'rel-node victim' : 'rel-node';
       return `<g class="${cls}" transform="translate(${p.x.toFixed(1)},${p.y.toFixed(1)})">
         <title>${escapeHtml(m.name)}</title>
-        <circle r="${id === 'victim' ? 34 : 28}"/>
-        <text y="0">${m.emoji}</text>
+        <circle r="${nodeRadius(id)}"/>
+        <text class="rel-emoji" y="0">${m.emoji}</text>
+        <text class="rel-name" y="${nodeRadius(id) + 13}">${escapeHtml(m.name)}</text>
       </g>`;
     }).join('');
-    $('#relations-map').innerHTML = `<svg viewBox="0 0 ${size} ${size}" role="img" aria-label="${escapeHtml(t('relations_title'))}">${lines}${nodes}</svg>`;
+    $('#relations-map').innerHTML = `<svg viewBox="0 0 ${size} ${size}" role="img" aria-label="${escapeHtml(t('relations_title'))}">
+      <defs><marker id="rel-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path class="rel-arrow-head" d="M0,0 L10,5 L0,10 z"/>
+      </marker></defs>
+      ${lines}${nodes}
+    </svg>`;
     const list = $('#relations-list');
     list.innerHTML = rels.map((rel) => {
       const a = meta.get(rel.a);
       const b = meta.get(rel.b);
       const an = a ? `${a.emoji} ${a.name}` : escapeHtml(rel.a);
       const bn = b ? `${b.emoji} ${b.name}` : escapeHtml(rel.b);
-      return `<li>${an} <span class="rel-label">— ${escapeHtml(rel.label)}</span> ${bn}</li>`;
+      return `<li><span class="rel-pair">${an} <span class="rel-arrow">→</span> ${bn}</span><span class="rel-label">：${escapeHtml(rel.label)}</span></li>`;
     }).join('');
   }
 
@@ -606,11 +640,16 @@
     state.activeSuspect = id;
     if (!state.conversations[state.caseId][id]) state.conversations[state.caseId][id] = [];
     const suspect = state.suspects.find((s) => s.id === id);
+    const vmeta = voiceById(activeVoiceId(suspect.voice || ''));
+    const voiceTag = vmeta
+      ? `<div class="voice-tag">🎙 ${escapeHtml(vmeta.name)} <span class="voice-gender">${vmeta.gender === 'female' ? '♀' : '♂'}</span></div>`
+      : '';
     $('#suspect-head').innerHTML = `
       <div class="avatar">${suspect.emoji}</div>
       <div>
         <div class="name">${escapeHtml(suspect.name)}</div>
         <div class="role">${escapeHtml(suspect.role)}</div>
+        ${voiceTag}
       </div>
       <div class="head-side"><span id="mood-chip" class="mood-chip"></span></div>`;
     renderChat(id);
@@ -730,7 +769,12 @@
       renderChat(id);
       renderMoodChip();
       unlockClues(text);
-      speak(data.reply);
+      const suspect = state.suspects.find((s) => s.id === id);
+      speak(data.reply, {
+        voice: (suspect && suspect.voice) || '',
+        rate: (suspect && suspect.voiceRate) || 1,
+        pitch: (suspect && suspect.voicePitch) || 1,
+      });
       saveState();
     } catch (err) {
       history.push({ role: 'error', content: t('freeze') });
@@ -750,8 +794,55 @@
     $('#input-question').disabled = !enabled;
   }
 
-  /* ---- Text to speech ---- */
-  let voice = null;
+  /* ---- Text to speech (multi-voice) ----
+     Preferred path: server-side DashScope Sambert voices fetched from /api/tts
+     and played through Web Audio. Fallback: browser speechSynthesis (lang-matched).
+     Each suspect carries their own voice id + rate/pitch from the case data. */
+  let ttsServerOn = false;
+  let ttsActiveProvider = null;  // 'sambert' | 'edge' | null
+  let ttsVoices = [];
+  let ttsVoicesMap = new Map();
+  let ttsSambertToEdge = {};     // sambert voice id -> edge voice id
+  let ttsAbort = null;         // AbortController for an in-flight /api/tts fetch
+  let ttsPhase = 'idle';       // idle | loading | playing
+  let ttsVoiceName = '';
+  let ttsOnEnd = null;         // callback fired when playback concludes OR is superseded
+  let currentSource = null;    // active AudioBufferSourceNode
+  let voice = null;            // browser fallback voice
+
+  async function initTts() {
+    try {
+      const res = await fetch('/api/tts/voices');
+      if (!res.ok) throw new Error('voices endpoint unavailable');
+      const data = await res.json();
+      ttsServerOn = Boolean(data.enabled);
+      ttsActiveProvider = data.activeProvider || null;
+      ttsVoices = Array.isArray(data.voices) ? data.voices : [];
+      ttsVoicesMap = new Map(ttsVoices.map((v) => [v.id, v]));
+      ttsSambertToEdge = data.sambertToEdge || {};
+    } catch {
+      ttsServerOn = false;
+      ttsActiveProvider = null;
+      ttsVoices = [];
+      ttsVoicesMap = new Map();
+      ttsSambertToEdge = {};
+    }
+  }
+
+  function voiceById(id) {
+    return (id && ttsVoicesMap.get(id)) || null;
+  }
+
+  // Map a case's Sambert voice id onto the currently active provider's registry,
+  // so suspects keep their gender/age flavor on Edge TTS (free) as well.
+  function activeVoiceId(id) {
+    if (!id) return '';
+    if (ttsActiveProvider === 'edge') {
+      return ttsSambertToEdge[id] || (ttsVoicesMap.has(id) ? id : '');
+    }
+    return ttsVoicesMap.has(id) ? id : '';
+  }
+
   // utterance.voice overrides utterance.lang; a mismatched voice (en-US voice reading Chinese) is silent on macOS
   function pickVoice(lang) {
     const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
@@ -769,13 +860,123 @@
     pickVoice(state.lang);
     speechSynthesis.onvoiceschanged = () => pickVoice(state.lang);
   }
-  function speak(text) {
-    if (!state.ttsOn || !window.speechSynthesis) return;
+
+  function setTtsPhase(phase, voiceName = '') {
+    ttsPhase = phase;
+    if (voiceName) ttsVoiceName = voiceName;
+    const el = $('#tts-status');
+    if (!el) return;
+    if (phase === 'idle') {
+      el.hidden = true;
+      el.classList.remove('on');
+      el.textContent = '';
+      return;
+    }
+    el.hidden = false;
+    el.classList.add('on');
+    const label = phase === 'loading' ? t('tts_preparing') : t('tts_speaking');
+    el.textContent = ttsVoiceName ? `${label} · ${ttsVoiceName}` : label;
+  }
+
+  function finishTtsPlayback() {
+    currentSource = null;
+    ttsAbort = null;
+    setTtsPhase('idle');
+    if (ttsOnEnd) {
+      const cb = ttsOnEnd;
+      ttsOnEnd = null;
+      cb();
+    }
+  }
+
+  function stopSpeaking() {
+    if (ttsAbort) {
+      try { ttsAbort.abort(); } catch { /* noop */ }
+      ttsAbort = null;
+    }
+    if (currentSource) {
+      try { currentSource.onended = null; currentSource.stop(); } catch { /* noop */ }
+      currentSource = null;
+    }
+    if (window.speechSynthesis) {
+      try { speechSynthesis.cancel(); } catch { /* noop */ }
+    }
+    if (ttsPhase !== 'idle') finishTtsPlayback();
+    else if (ttsOnEnd) {
+      const cb = ttsOnEnd;
+      ttsOnEnd = null;
+      cb();
+    }
+  }
+
+  async function speakWithServer(text, voiceId, rate, pitch, onEnd) {
+    const controller = new AbortController();
+    ttsAbort = controller;
+    const meta = voiceById(voiceId);
+    setTtsPhase('loading', meta ? meta.name : '');
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text.slice(0, 1000), voice: voiceId, rate, pitch, provider: 'auto' }),
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error(`TTS HTTP ${res.status}`);
+      const buf = await res.arrayBuffer();
+      if (ttsAbort !== controller) return;
+      let audio = null;
+      try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        audio = await audioCtx.decodeAudioData(buf);
+      } catch {
+        audio = null; // undecodable audio -> browser fallback below
+      }
+      if (ttsAbort !== controller) return;
+      if (!audio) {
+        ttsAbort = null;
+        speakWithBrowser(text, onEnd);
+        return;
+      }
+      ttsOnEnd = onEnd || null;
+      const src = audioCtx.createBufferSource();
+      src.buffer = audio;
+      src.connect(audioCtx.destination);
+      src.onended = () => {
+        if (currentSource === src) finishTtsPlayback();
+      };
+      currentSource = src;
+      src.start();
+      setTtsPhase('playing', meta ? meta.name : '');
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+      console.warn('[tts] server synthesis failed, browser fallback:', err);
+      ttsAbort = null;
+      if (state.ttsOn) {
+        toast(t('tts_fallback'));
+        speakWithBrowser(text, onEnd);
+      } else {
+        finishTtsPlayback();
+      }
+    }
+  }
+
+  function speakWithBrowser(text, onEnd) {
+    if (!window.speechSynthesis) {
+      setTtsPhase('idle');
+      if (onEnd) onEnd();
+      return;
+    }
+    ttsOnEnd = onEnd || null;
+    setTtsPhase('loading');
     pickVoice(state.lang);
     const utter = new SpeechSynthesisUtterance(text);
     if (voice) utter.voice = voice;
     else utter.lang = state.lang === 'zh' ? 'zh-CN' : 'en-US';
     utter.rate = 1.02;
+    utter.onstart = () => setTtsPhase('playing', voice ? voice.name : '');
+    utter.onend = () => finishTtsPlayback();
+    utter.onerror = () => finishTtsPlayback();
     // Chrome/macOS drops an utterance queued synchronously right after cancel(); defer briefly
     if (speechSynthesis.speaking || speechSynthesis.pending) {
       speechSynthesis.cancel();
@@ -783,6 +984,52 @@
     } else {
       speechSynthesis.speak(utter);
     }
+  }
+
+  function speak(text, opts = {}) {
+    if (!state.ttsOn) return;
+    const clean = String(text || '').trim();
+    if (!clean) return;
+    stopSpeaking();
+    const voiceId = activeVoiceId(String(opts.voice || ''));
+    const useServer = ttsServerOn && voiceId;
+    if (useServer) {
+      speakWithServer(clean, voiceId, Number(opts.rate) || 1, Number(opts.pitch) || 1, opts.onEnd || null);
+    } else {
+      speakWithBrowser(clean, opts.onEnd || null);
+    }
+  }
+
+  function judgeVoice() {
+    return state.lang === 'zh' ? 'sambert-zhide-v1' : 'sambert-cally-v1';
+  }
+  function narratorVoice() {
+    return state.lang === 'zh' ? 'sambert-zhichu-v1' : 'sambert-cally-v1';
+  }
+
+  let briefingReading = false;
+  function toggleReadBriefing() {
+    const btn = $('#btn-read-briefing');
+    if (briefingReading) {
+      stopSpeaking();
+      briefingReading = false;
+      if (btn) btn.classList.remove('playing');
+      return;
+    }
+    const parts = [state.caseData.briefing, state.caseData.scene || ''];
+    const text = parts.filter(Boolean).join(' ');
+    if (!text) return;
+    briefingReading = true;
+    if (btn) btn.classList.add('playing');
+    speak(text, {
+      voice: narratorVoice(),
+      rate: 1,
+      pitch: 1,
+      onEnd: () => {
+        briefingReading = false;
+        if (btn) btn.classList.remove('playing');
+      },
+    });
   }
 
   /* ---- Speech recognition ---- */
@@ -987,6 +1234,7 @@
       </div>`;
 
     showScreen('screen-verdict');
+    speak(`${title}. ${v.message}`, { voice: judgeVoice(), rate: 1.02, pitch: 1 });
 
     $('#btn-copy').addEventListener('click', () => {
       const text = `${title} · ${v.rating}/100 · ${rank.title} · ${state.score}${t('pts')}\n${v.message}\n${t('killer')}: ${data.truth.killer}\n${t('motive')}: ${data.truth.motive}`;
@@ -1049,6 +1297,7 @@
     showScreen('screen-cases');
   });
   $('#btn-back').addEventListener('click', () => showScreen('screen-lobby'));
+  $('#btn-read-briefing').addEventListener('click', toggleReadBriefing);
   $('#btn-send').addEventListener('click', () => sendQuestion($('#input-question').value));
   $('#input-question').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') sendQuestion(e.target.value);
@@ -1067,7 +1316,7 @@
     state.ttsOn = !state.ttsOn;
     localStorage.setItem(TTS_KEY, state.ttsOn ? '1' : '0');
     updateTtsButton();
-    if (!state.ttsOn && window.speechSynthesis) speechSynthesis.cancel();
+    if (!state.ttsOn) stopSpeaking();
   });
 
   /* ---- SFX toggle (persisted) ---- */

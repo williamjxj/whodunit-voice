@@ -2,6 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { randomUUID, createHash } from 'node:crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -27,9 +28,480 @@ const HOST = process.env.HOST || env.HOST || '127.0.0.1';
 const API_KEY = process.env.DEEPSEEK_API_KEY || env.DEEPSEEK_API_KEY || '';
 const MODEL = process.env.DEEPSEEK_MODEL || env.DEEPSEEK_MODEL || 'deepseek-v4-flash';
 const BASE_URL = (process.env.DEEPSEEK_BASE_URL || env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').replace(/\/$/, '');
+const DASHSCOPE_API_KEY = process.env.DASHSCOPE_API_KEY || env.DASHSCOPE_API_KEY || '';
+const TTS_WS_URL = (process.env.DASHSCOPE_TTS_URL || env.DASHSCOPE_TTS_URL || 'wss://dashscope.aliyuncs.com/api-ws/v1/inference').replace(/\/$/, '');
+const HAS_NATIVE_WS = typeof WebSocket !== 'undefined';
+const EDGE_TTS_ENABLED = String(process.env.EDGE_TTS_ENABLED ?? env.EDGE_TTS_ENABLED ?? '1') !== '0';
 
 const CASES_DIR = path.join(__dirname, 'data', 'cases');
 const PUBLIC_DIR = path.join(__dirname, 'public');
+
+/* ---- Sambert voice registry (DashScope 百炼) ----
+   All voices are real Sambert model ids. sampleRate = the model's native default;
+   every voice accepts 16000 as well. Genders are used by the client to render
+   "male/female" labels; langs: zh / en / multi. */
+const TTS_VOICES = [
+  // 中文 48kHz（高音质，中文+英文）
+  { id: 'sambert-zhixiang-v1', name: '磁性男声', gender: 'male', lang: 'zh', sampleRate: 48000, desc: '磁性、浑厚，适合有声读物与沉稳角色' },
+  { id: 'sambert-zhinan-v1', name: '广告男声', gender: 'male', lang: 'zh', sampleRate: 48000, desc: '磁性、自信，适合精明角色' },
+  { id: 'sambert-zhichu-v1', name: '舌尖男声', gender: 'male', lang: 'zh', sampleRate: 48000, desc: '清晰、标准，通用旁白' },
+  { id: 'sambert-zhide-v1', name: '新闻男声', gender: 'male', lang: 'zh', sampleRate: 48000, desc: '沉稳、权威，适合主审官' },
+  { id: 'sambert-zhiqi-v1', name: '温柔女声', gender: 'female', lang: 'zh', sampleRate: 48000, desc: '柔和、亲切，适合端庄角色' },
+  { id: 'sambert-zhijia-v1', name: '标准女声', gender: 'female', lang: 'zh', sampleRate: 48000, desc: '标准、清晰，通用女声' },
+  { id: 'sambert-zhiru-v1', name: '新闻女声', gender: 'female', lang: 'zh', sampleRate: 48000, desc: '专业、流畅，知性角色' },
+  { id: 'sambert-zhiqian-v1', name: '资讯女声', gender: 'female', lang: 'zh', sampleRate: 48000, desc: '干练、利落，精明女性' },
+  { id: 'sambert-zhiwei-v1', name: '萝莉女声', gender: 'female', lang: 'zh', sampleRate: 48000, desc: '活泼、可爱，适合年轻角色' },
+  // 中文 16kHz 特色音色
+  { id: 'sambert-zhilun-v1', name: '悬疑解说男声', gender: 'male', lang: 'zh', sampleRate: 16000, desc: '悬疑氛围男声，适合江湖老角色' },
+  { id: 'sambert-zhishuo-v1', name: '自然男声', gender: 'male', lang: 'zh', sampleRate: 16000, desc: '自然口语男声，适合忠厚角色' },
+  { id: 'sambert-zhijing-v1', name: '严厉女声', gender: 'female', lang: 'zh', sampleRate: 16000, desc: '严厉、干练女声' },
+  { id: 'sambert-zhiting-v1', name: '电台女声', gender: 'female', lang: 'zh', sampleRate: 16000, desc: '电台主持质感女声' },
+  // 英语（美式）
+  { id: 'sambert-brian-v1', name: 'Brian', gender: 'male', lang: 'en', sampleRate: 16000, desc: '沉稳美式男声，商务/管家人设' },
+  { id: 'sambert-cally-v1', name: 'Cally', gender: 'male', lang: 'en', sampleRate: 16000, desc: '年轻美式男声，戏剧化角色' },
+  { id: 'sambert-cindy-v1', name: 'Cindy', gender: 'female', lang: 'en', sampleRate: 16000, desc: '优雅美式女声' },
+  { id: 'sambert-donna-v1', name: 'Donna', gender: 'female', lang: 'en', sampleRate: 16000, desc: '知性美式女声' },
+  { id: 'sambert-eva-v1', name: 'Eva', gender: 'female', lang: 'en', sampleRate: 16000, desc: '年轻美式女声' },
+  { id: 'sambert-betty-v1', name: 'Betty', gender: 'female', lang: 'en', sampleRate: 16000, desc: '爽利美式女声' },
+  { id: 'sambert-beth-v1', name: 'Beth', gender: 'female', lang: 'en', sampleRate: 16000, desc: '柔和美式女声' },
+  // 多语种特色
+  { id: 'sambert-clara-v1', name: 'Clara', gender: 'female', lang: 'multi', sampleRate: 16000, desc: '法语女声，舞台质感' },
+];
+const TTS_VOICE_MAP = new Map(TTS_VOICES.map((v) => [v.id, v]));
+const DEFAULT_TTS_VOICE = TTS_VOICE_MAP.get('sambert-zhichu-v1');
+
+/* ---- Edge TTS (Microsoft free neural voices, no API key) ----
+   Talks to Edge's read-aloud WebSocket: wss://speech.platform.bing.com/...
+   Requires a Sec-MS-GEC token (sha256 of rounded Windows ticks + trusted client
+   token). Live endpoint currently exposes ~322 voices / 142 locales; we curate
+   the ones relevant to the game (zh-CN + en-US + flavor languages). */
+const EDGE_TRUSTED_CLIENT_TOKEN = '6A5AA1D4EAFF4E9FB37E23D68491D6F4';
+const EDGE_CHROMIUM_VERSION = '143.0.3650.75';
+const EDGE_SEC_MS_GEC_VERSION = `1-${EDGE_CHROMIUM_VERSION}`;
+const EDGE_BASE_URL = 'wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1';
+const EDGE_WIN_EPOCH = 11644473600;
+
+const EDGE_VOICES = [
+  // 中文（普通话）
+  { id: 'zh-CN-XiaoxiaoNeural', name: '晓晓', gender: 'female', lang: 'zh', desc: '温暖女声，中文最常用的声音' },
+  { id: 'zh-CN-XiaoyiNeural', name: '晓伊', gender: 'female', lang: 'zh', desc: '活泼年轻女声，适合少女角色' },
+  { id: 'zh-CN-YunjianNeural', name: '云健', gender: 'male', lang: 'zh', desc: '沉稳浑厚男声，成熟角色' },
+  { id: 'zh-CN-YunxiNeural', name: '云希', gender: 'male', lang: 'zh', desc: '少年感男声，适合讲故事/江湖角色' },
+  { id: 'zh-CN-YunxiaNeural', name: '云夏', gender: 'male', lang: 'zh', desc: '标准清晰男声，通用' },
+  { id: 'zh-CN-YunyangNeural', name: '云扬', gender: 'male', lang: 'zh', desc: '新闻播报男声，沉稳权威' },
+  { id: 'zh-CN-liaoning-XiaobeiNeural', name: '晓北', gender: 'female', lang: 'zh', desc: '东北方言女声，泼辣角色' },
+  { id: 'zh-CN-shaanxi-XiaoniNeural', name: '晓妮', gender: 'female', lang: 'zh', desc: '陕西方言女声' },
+  // 英语（美式）
+  { id: 'en-US-AriaNeural', name: 'Aria', gender: 'female', lang: 'en', desc: '温暖成熟女声' },
+  { id: 'en-US-JennyNeural', name: 'Jenny', gender: 'female', lang: 'en', desc: '专业新闻女声' },
+  { id: 'en-US-MichelleNeural', name: 'Michelle', gender: 'female', lang: 'en', desc: '年轻友善女声' },
+  { id: 'en-US-AnaNeural', name: 'Ana', gender: 'female', lang: 'en', desc: '活泼女声' },
+  { id: 'en-US-AvaNeural', name: 'Ava', gender: 'female', lang: 'en', desc: '成熟柔和女声' },
+  { id: 'en-US-EmmaNeural', name: 'Emma', gender: 'female', lang: 'en', desc: '自信女声' },
+  { id: 'en-US-GuyNeural', name: 'Guy', gender: 'male', lang: 'en', desc: '低沉权威男声' },
+  { id: 'en-US-BrianNeural', name: 'Brian', gender: 'male', lang: 'en', desc: '专业沉稳男声' },
+  { id: 'en-US-ChristopherNeural', name: 'Christopher', gender: 'male', lang: 'en', desc: '温暖青年男声，适合叙事' },
+  { id: 'en-US-EricNeural', name: 'Eric', gender: 'male', lang: 'en', desc: '自信男声' },
+  { id: 'en-US-RogerNeural', name: 'Roger', gender: 'male', lang: 'en', desc: '成熟男声' },
+  { id: 'en-US-AndrewNeural', name: 'Andrew', gender: 'male', lang: 'en', desc: '温和男声' },
+  { id: 'en-US-SteffanNeural', name: 'Steffan', gender: 'male', lang: 'en', desc: '年轻男声' },
+  { id: 'en-US-EmmaMultilingualNeural', name: 'Emma (多语)', gender: 'female', lang: 'multi', desc: '多语种女声' },
+  { id: 'en-US-BrianMultilingualNeural', name: 'Brian (多语)', gender: 'male', lang: 'multi', desc: '多语种男声' },
+  { id: 'en-US-AndrewMultilingualNeural', name: 'Andrew (多语)', gender: 'male', lang: 'multi', desc: '多语种旁白男声' },
+  // 风味语言（点缀用）
+  { id: 'en-GB-SoniaNeural', name: 'Sonia', gender: 'female', lang: 'en', desc: '英式女声' },
+  { id: 'en-GB-RyanNeural', name: 'Ryan', gender: 'male', lang: 'en', desc: '英式男声' },
+  { id: 'fr-FR-DeniseNeural', name: 'Denise', gender: 'female', lang: 'multi', desc: '法语女声，舞台质感' },
+  { id: 'fr-FR-HenriNeural', name: 'Henri', gender: 'male', lang: 'multi', desc: '法语男声' },
+  { id: 'ja-JP-NanamiNeural', name: 'Nanami', gender: 'female', lang: 'multi', desc: '日语女声' },
+  { id: 'ja-JP-KeitaNeural', name: 'Keita', gender: 'male', lang: 'multi', desc: '日语男声' },
+  { id: 'ko-KR-SunHiNeural', name: 'SunHi', gender: 'female', lang: 'multi', desc: '韩语女声' },
+  { id: 'ko-KR-InJoonNeural', name: 'InJoon', gender: 'male', lang: 'multi', desc: '韩语男声' },
+  { id: 'de-DE-KatjaNeural', name: 'Katja', gender: 'female', lang: 'multi', desc: '德语女声' },
+  { id: 'de-DE-ConradNeural', name: 'Conrad', gender: 'male', lang: 'multi', desc: '德语男声' },
+  { id: 'es-ES-ElviraNeural', name: 'Elvira', gender: 'female', lang: 'multi', desc: '西班牙语女声' },
+  { id: 'es-ES-AlvaroNeural', name: 'Alvaro', gender: 'male', lang: 'multi', desc: '西班牙语男声' },
+  { id: 'it-IT-ElsaNeural', name: 'Elsa', gender: 'female', lang: 'multi', desc: '意大利语女声' },
+  { id: 'it-IT-DiegoNeural', name: 'Diego', gender: 'male', lang: 'multi', desc: '意大利语男声' },
+  { id: 'ru-RU-SvetlanaNeural', name: 'Svetlana', gender: 'female', lang: 'multi', desc: '俄语女声' },
+  { id: 'ru-RU-DmitryNeural', name: 'Dmitry', gender: 'male', lang: 'multi', desc: '俄语男声' },
+];
+const EDGE_VOICE_MAP = new Map(EDGE_VOICES.map((v) => [v.id, v]));
+const DEFAULT_EDGE_VOICE = EDGE_VOICE_MAP.get('zh-CN-XiaoxiaoNeural');
+
+/* Sambert voice id -> closest Edge voice id. Used when Edge TTS is the active
+   provider so per-suspect voices keep their gender/age flavor for free. */
+const SAMBERT_TO_EDGE = {
+  'sambert-zhixiang-v1': 'zh-CN-YunjianNeural',
+  'sambert-zhinan-v1': 'zh-CN-YunxiNeural',
+  'sambert-zhichu-v1': 'zh-CN-YunxiaNeural',
+  'sambert-zhide-v1': 'zh-CN-YunyangNeural',
+  'sambert-zhiqi-v1': 'zh-CN-XiaoxiaoNeural',
+  'sambert-zhijia-v1': 'zh-CN-XiaoxiaoNeural',
+  'sambert-zhiru-v1': 'zh-CN-XiaoxiaoNeural',
+  'sambert-zhiqian-v1': 'zh-CN-XiaoxiaoNeural',
+  'sambert-zhiwei-v1': 'zh-CN-XiaoyiNeural',
+  'sambert-zhilun-v1': 'zh-CN-YunxiNeural',
+  'sambert-zhishuo-v1': 'zh-CN-YunxiaNeural',
+  'sambert-zhijing-v1': 'zh-CN-liaoning-XiaobeiNeural',
+  'sambert-zhiting-v1': 'zh-CN-XiaoxiaoNeural',
+  'sambert-brian-v1': 'en-US-BrianNeural',
+  'sambert-cally-v1': 'en-US-ChristopherNeural',
+  'sambert-cindy-v1': 'en-US-AriaNeural',
+  'sambert-donna-v1': 'en-US-JennyNeural',
+  'sambert-eva-v1': 'en-US-MichelleNeural',
+  'sambert-betty-v1': 'en-US-EmmaNeural',
+  'sambert-beth-v1': 'en-US-AvaNeural',
+  'sambert-clara-v1': 'fr-FR-DeniseNeural',
+};
+
+const TTS_CACHE_MAX = 64;
+const ttsCache = new Map();
+
+function clampNum(value, min, max) {
+  return Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
+}
+
+function ensureWav(buf, sampleRate) {
+  if (buf.length > 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WAVE') return buf;
+  // DashScope returned raw PCM; wrap it in a standard 16-bit mono WAV header.
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0, 'ascii');
+  header.writeUInt32LE(36 + buf.length, 4);
+  header.write('WAVE', 8, 'ascii');
+  header.write('fmt ', 12, 'ascii');
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);       // PCM
+  header.writeUInt16LE(1, 22);       // mono
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * 2, 28);
+  header.writeUInt16LE(2, 32);
+  header.writeUInt16LE(16, 34);
+  header.write('data', 36, 'ascii');
+  header.writeUInt32LE(buf.length, 40);
+  return Buffer.concat([header, buf]);
+}
+
+/* Synthesize speech via DashScope Sambert WebSocket (zero npm deps, Node 22+ native WebSocket).
+   Returns a complete WAV buffer. Falls back to raw-PCM wrapping if needed. */
+function synthesizeSpeech(text, voiceId = '', opts = {}) {
+  return new Promise((resolve, reject) => {
+    if (!DASHSCOPE_API_KEY) {
+      reject(new Error('DASHSCOPE_API_KEY is not set. Add it to .env to enable multi-voice TTS.'));
+      return;
+    }
+    if (!HAS_NATIVE_WS) {
+      reject(new Error('Server TTS requires Node >= 22 (native WebSocket). Upgrade Node or let the browser fall back to speechSynthesis.'));
+      return;
+    }
+    const voice = TTS_VOICE_MAP.get(voiceId) || DEFAULT_TTS_VOICE;
+    const sampleRate = clampNum(Number(opts.sampleRate) || voice.sampleRate, 8000, 48000);
+    const rate = clampNum(Number(opts.rate) || 1, 0.5, 2);
+    const pitch = clampNum(Number(opts.pitch) || 1, 0.5, 2);
+    const volume = clampNum(Number(opts.volume) || 50, 0, 100);
+    const cleanText = String(text).replace(/\s+/g, ' ').trim().slice(0, 1000);
+    if (!cleanText) {
+      reject(new Error('Empty TTS text'));
+      return;
+    }
+    const cacheKey = `${voice.id}|${sampleRate}|${rate}|${pitch}|${cleanText}`;
+    const cached = ttsCache.get(cacheKey);
+    if (cached) {
+      resolve(cached);
+      return;
+    }
+
+    let ws;
+    try {
+      ws = new WebSocket(TTS_WS_URL, {
+        headers: {
+          Authorization: `Bearer ${DASHSCOPE_API_KEY}`,
+          'user-agent': 'whodunit-voice/0.5',
+        },
+      });
+      ws.binaryType = 'arraybuffer';
+    } catch (err) {
+      reject(err);
+      return;
+    }
+
+    const chunks = [];
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      try { ws.close(); } catch { /* noop */ }
+      reject(new Error('TTS request timed out after 45s'));
+    }, 45000);
+
+    const finish = (err, buf) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { ws.close(); } catch { /* noop */ }
+      if (err) {
+        reject(err);
+        return;
+      }
+      if (ttsCache.size >= TTS_CACHE_MAX) ttsCache.delete(ttsCache.keys().next().value);
+      ttsCache.set(cacheKey, buf);
+      resolve(buf);
+    };
+
+    ws.onopen = () => {
+      const msg = {
+        header: { action: 'run-task', task_id: randomUUID(), streaming: 'out' },
+        payload: {
+          model: voice.id,
+          task_group: 'audio',
+          task: 'tts',
+          function: 'SpeechSynthesizer',
+          input: { text: cleanText },
+          parameters: {
+            text_type: 'PlainText',
+            format: 'wav',
+            sample_rate: sampleRate,
+            volume,
+            rate,
+            pitch,
+            word_timestamp_enabled: false,
+            phoneme_timestamp_enabled: false,
+          },
+        },
+      };
+      try { ws.send(JSON.stringify(msg)); } catch (err) { finish(err); }
+    };
+    ws.onmessage = (event) => {
+      if (typeof event.data === 'string') {
+        let msg = null;
+        try { msg = JSON.parse(event.data); } catch { return; }
+        const ev = msg.header && msg.header.event;
+        if (ev === 'task-finished') {
+          finish(null, ensureWav(Buffer.concat(chunks), sampleRate));
+        } else if (ev === 'task-failed') {
+          finish(new Error(`DashScope TTS failed: ${msg.header.error_code || 'UNKNOWN'} ${msg.header.error_message || ''}`.trim()));
+        }
+        return;
+      }
+      const data = event.data;
+      if (data instanceof ArrayBuffer) chunks.push(Buffer.from(data));
+      else if (Buffer.isBuffer(data)) chunks.push(data);
+      else if (data && typeof data.arrayBuffer === 'function') {
+        data.arrayBuffer().then((ab) => { if (!settled) chunks.push(Buffer.from(ab)); }).catch(() => {});
+      }
+    };
+    ws.onerror = (event) => {
+      const detail = (event && event.message) ? `: ${event.message}` : '';
+      finish(new Error(`DashScope TTS connection error${detail}`));
+    };
+    ws.onclose = () => {
+      if (!settled) finish(new Error('DashScope TTS connection closed before task finished'));
+    };
+  });
+}
+
+/* ---- Edge TTS (free) ---- */
+function edgeJsDateString(d = new Date()) {
+  return d.toUTCString().replace('GMT', 'GMT+0000 (Coordinated Universal Time)');
+}
+
+function edgeSecMsGec(nowSeconds) {
+  let ticks = (nowSeconds || Date.now() / 1000) + EDGE_WIN_EPOCH;
+  ticks -= ticks % 300;          // round down to nearest 5 minutes
+  ticks *= 1e7;                  // Windows file time (100ns intervals)
+  const hash = createHash('sha256').update(`${Math.round(ticks)}${EDGE_TRUSTED_CLIENT_TOKEN}`);
+  return hash.digest('hex').toUpperCase();
+}
+
+function edgeEscapeXml(text) {
+  return String(text).replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;',
+  }[ch]));
+}
+
+function edgeConnectId() {
+  return randomUUID().replace(/-/g, '');
+}
+
+function edgeConnectUrl(connectId, skewSeconds = 0) {
+  return `${EDGE_BASE_URL}?TrustedClientToken=${EDGE_TRUSTED_CLIENT_TOKEN}`
+    + `&Sec-MS-GEC=${edgeSecMsGec(Date.now() / 1000 + skewSeconds)}`
+    + `&Sec-MS-GEC-Version=${EDGE_SEC_MS_GEC_VERSION}`
+    + `&ConnectionId=${connectId}`;
+}
+
+/* One synthesis attempt over a single WebSocket connection. Returns MP3 bytes. */
+function edgeSynthesizeOnce(text, voiceId, { rate = 1, pitch = 1, skewSeconds = 0 } = {}) {
+  return new Promise((resolve, reject) => {
+    const connectId = edgeConnectId();
+    let ws;
+    try {
+      ws = new WebSocket(edgeConnectUrl(connectId, skewSeconds), {
+        headers: {
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache',
+          'Origin': 'chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold',
+          'User-Agent': `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${EDGE_CHROMIUM_VERSION.split('.')[0]}.0.0.0 Safari/537.36 Edg/${EDGE_CHROMIUM_VERSION.split('.')[0]}.0.0.0`,
+          'Cookie': `muid=${edgeConnectId().toUpperCase()};`,
+        },
+      });
+      ws.binaryType = 'arraybuffer';
+    } catch (err) {
+      reject(err);
+      return;
+    }
+
+    const chunks = [];
+    let audioReceived = false;
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      try { ws.close(); } catch { /* noop */ }
+      reject(new Error('Edge TTS request timed out after 30s'));
+    }, 30000);
+
+    const finish = (err, buf) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { ws.close(); } catch { /* noop */ }
+      if (err) reject(err);
+      else resolve(buf);
+    };
+
+    ws.onopen = () => {
+      const timestamp = edgeJsDateString();
+      const config = '{"context":{"synthesis":{"audio":{"metadataoptions":{'
+        + '"sentenceBoundaryEnabled":"true","wordBoundaryEnabled":"false"},'
+        + '"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}';
+      ws.send(`X-Timestamp:${timestamp}\r\nContent-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n${config}\r\n`);
+      const ratePct = Math.round((rate - 1) * 100);
+      const pitchHz = Math.round((pitch - 1) * 100);
+      const ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>`
+        + `<voice name='${voiceId}'><prosody pitch='${pitchHz >= 0 ? '+' : ''}${pitchHz}Hz' rate='${ratePct >= 0 ? '+' : ''}${ratePct}%' volume='+0%'>`
+        + `${edgeEscapeXml(text)}</prosody></voice></speak>`;
+      ws.send(`X-RequestId:${edgeConnectId()}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${timestamp}Z\r\nPath:ssml\r\n\r\n${ssml}`);
+    };
+
+    ws.onmessage = (event) => {
+      if (typeof event.data === 'string') {
+        const path = (String(event.data).match(/Path:(\S+)/) || [])[1];
+        if (path === 'turn.end') {
+          if (!audioReceived) {
+            finish(new Error('Edge TTS returned no audio (voice or text rejected)'));
+          } else {
+            finish(null, Buffer.concat(chunks));
+          }
+        }
+        return;
+      }
+      const raw = Buffer.from(event.data);
+      if (raw.length < 2) return;
+      const headerLength = raw.readUInt16BE(0);
+      const head = raw.subarray(2, 2 + headerLength).toString('latin1');
+      const body = raw.subarray(2 + headerLength);
+      if (head.includes('Path:audio') && body.length) {
+        audioReceived = true;
+        chunks.push(body);
+      }
+    };
+
+    ws.onerror = (event) => {
+      const detail = (event && event.message) ? `: ${event.message}` : '';
+      finish(new Error(`Edge TTS connection error${detail}`));
+    };
+    ws.onclose = () => {
+      if (!settled) finish(new Error('Edge TTS connection closed before turn finished'));
+    };
+  });
+}
+
+async function synthesizeEdgeSpeech(text, voiceId, opts = {}) {
+  if (!HAS_NATIVE_WS) throw new Error('Edge TTS requires Node >= 22 (native WebSocket).');
+  const voice = EDGE_VOICE_MAP.get(voiceId) || DEFAULT_EDGE_VOICE;
+  try {
+    return await edgeSynthesizeOnce(text, voice.id, opts);
+  } catch (err) {
+    // Microsoft rejects tokens when the system clock is skewed: fetch the server
+    // Date header once and retry with corrected clock.
+    try {
+      const probe = await fetch(`https://${EDGE_BASE_URL.replace('wss://', '')}?TrustedClientToken=${EDGE_TRUSTED_CLIENT_TOKEN}`, { method: 'GET' });
+      const serverDate = probe.headers.get('date');
+      const skew = serverDate ? (Date.parse(serverDate) / 1000) - (Date.now() / 1000) : 0;
+      if (Math.abs(skew) > 60) {
+        return await edgeSynthesizeOnce(text, voice.id, { ...opts, skewSeconds: skew });
+      }
+    } catch { /* keep original error */ }
+    throw err;
+  }
+}
+
+function ttsActiveProvider() {
+  if (DASHSCOPE_API_KEY && HAS_NATIVE_WS) return 'sambert';
+  if (EDGE_TTS_ENABLED && HAS_NATIVE_WS) return 'edge';
+  return null;
+}
+
+function resolveTtsVoice(voiceId, provider) {
+  const sambertOk = Boolean(DASHSCOPE_API_KEY && HAS_NATIVE_WS);
+  const edgeOk = Boolean(EDGE_TTS_ENABLED && HAS_NATIVE_WS);
+  const wantEdge = provider === 'edge' || (provider === 'auto' && EDGE_VOICE_MAP.has(voiceId));
+
+  if (wantEdge && edgeOk) {
+    return {
+      provider: 'edge',
+      voice: EDGE_VOICE_MAP.get(voiceId)
+        || EDGE_VOICE_MAP.get(SAMBERT_TO_EDGE[voiceId])
+        || DEFAULT_EDGE_VOICE,
+    };
+  }
+  if (!wantEdge && sambertOk) {
+    return {
+      provider: 'sambert',
+      voice: TTS_VOICE_MAP.get(voiceId) || DEFAULT_TTS_VOICE,
+    };
+  }
+  // Requested provider unavailable -> degrade to the other one.
+  if (sambertOk) {
+    return {
+      provider: 'sambert',
+      voice: TTS_VOICE_MAP.get(voiceId) || DEFAULT_TTS_VOICE,
+    };
+  }
+  if (edgeOk) {
+    return {
+      provider: 'edge',
+      voice: EDGE_VOICE_MAP.get(voiceId)
+        || EDGE_VOICE_MAP.get(SAMBERT_TO_EDGE[voiceId])
+        || DEFAULT_EDGE_VOICE,
+    };
+  }
+  return null;
+}
+
+async function synthesizeTts(text, voiceId, opts = {}) {
+  const provider = String(opts.provider || 'auto');
+  const resolved = resolveTtsVoice(voiceId, provider);
+  if (!resolved) throw new Error('No TTS provider available. Set DASHSCOPE_API_KEY or enable Edge TTS.');
+  const rate = clampNum(Number(opts.rate) || 1, 0.5, 2);
+  const pitch = clampNum(Number(opts.pitch) || 1, 0.5, 2);
+  const cacheKey = `${resolved.provider}|${resolved.voice.id}|${rate}|${pitch}|${text}`;
+  let buf = ttsCache.get(cacheKey);
+  let contentType;
+  if (resolved.provider === 'sambert') {
+    contentType = 'audio/wav';
+    if (!buf) buf = await synthesizeSpeech(text, resolved.voice.id, { rate, pitch, sampleRate: opts.sampleRate });
+  } else {
+    contentType = 'audio/mpeg';
+    if (!buf) buf = await synthesizeEdgeSpeech(text, resolved.voice.id, { rate, pitch });
+  }
+  if (!ttsCache.has(cacheKey)) {
+    if (ttsCache.size >= TTS_CACHE_MAX) ttsCache.delete(ttsCache.keys().next().value);
+    ttsCache.set(cacheKey, buf);
+  }
+  return { buffer: buf, contentType, provider: resolved.provider };
+}
 
 function loadCases() {
   const packs = {};
@@ -333,7 +805,65 @@ const handler = async (req, res) => {
 
   try {
     if (req.method === 'GET' && pathname === '/api/health') {
-      sendJson(res, 200, { ok: true, model: MODEL, cases: caseSummaries().length, caseTitle: Object.values(cases)[0]?.meta.title || '' });
+      sendJson(res, 200, {
+        ok: true,
+        model: MODEL,
+        cases: caseSummaries().length,
+        caseTitle: Object.values(cases)[0]?.meta.title || '',
+        tts: {
+          enabled: Boolean(ttsActiveProvider()),
+          activeProvider: ttsActiveProvider(),
+          providers: {
+            sambert: Boolean(DASHSCOPE_API_KEY && HAS_NATIVE_WS),
+            edge: Boolean(EDGE_TTS_ENABLED && HAS_NATIVE_WS),
+          },
+          voices: {
+            sambert: TTS_VOICES.length,
+            edge: EDGE_VOICES.length,
+          },
+        },
+      });
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/api/tts/voices') {
+      const active = ttsActiveProvider();
+      const sambertEnabled = Boolean(DASHSCOPE_API_KEY && HAS_NATIVE_WS);
+      const edgeEnabled = Boolean(EDGE_TTS_ENABLED && HAS_NATIVE_WS);
+      sendJson(res, 200, {
+        enabled: Boolean(active),
+        activeProvider: active,
+        defaultVoice: active === 'sambert' ? DEFAULT_TTS_VOICE.id : DEFAULT_EDGE_VOICE.id,
+        voices: active === 'sambert' ? TTS_VOICES : EDGE_VOICES,
+        sambertToEdge: SAMBERT_TO_EDGE,
+        providers: [
+          { id: 'sambert', enabled: sambertEnabled, free: false, name: 'DashScope Sambert', voices: TTS_VOICES },
+          { id: 'edge', enabled: edgeEnabled, free: true, name: 'Edge TTS（免费）', voices: EDGE_VOICES },
+        ],
+      });
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/tts') {
+      const body = await readJsonBody(req);
+      const text = typeof body.text === 'string' ? body.text.trim().slice(0, 1000) : '';
+      if (!text) {
+        sendJson(res, 400, { error: 'Empty text' });
+        return;
+      }
+      const { buffer: audio, contentType, provider } = await synthesizeTts(text, String(body.voice || ''), {
+        provider: body.provider,
+        rate: body.rate,
+        pitch: body.pitch,
+        sampleRate: body.sampleRate,
+      });
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Content-Length': audio.length,
+        'Cache-Control': 'no-store',
+        'X-TTS-Provider': provider,
+      });
+      res.end(audio);
       return;
     }
 
@@ -349,7 +879,12 @@ const handler = async (req, res) => {
         sendJson(res, 404, { error: `Unknown caseId: ${caseId}` });
         return;
       }
-      const safeSuspects = pack.suspects.map(({ id, name, role, emoji, age, shortBio }) => ({ id, name, role, emoji, age, shortBio }));
+      const safeSuspects = pack.suspects.map(({ id, name, role, emoji, age, shortBio, voice, voiceRate, voicePitch }) => ({
+        id, name, role, emoji, age, shortBio,
+        voice: voice || '',
+        voiceRate: Number.isFinite(Number(voiceRate)) ? Number(voiceRate) : 1,
+        voicePitch: Number.isFinite(Number(voicePitch)) ? Number(voicePitch) : 1,
+      }));
       sendJson(res, 200, {
         case: {
           id: pack.meta.id,
@@ -459,7 +994,7 @@ const handler = async (req, res) => {
 
     serveStatic(req, res, pathname);
   } catch (err) {
-    const status = /DeepSeek/.test(err.message) ? 502 : 400;
+    const status = /DeepSeek|DashScope|TTS/.test(err.message) ? 502 : 400;
     sendJson(res, status, { error: err.message });
   }}
 
@@ -468,6 +1003,10 @@ server.listen(PORT, HOST, () => {
   console.log(`Whodunit Voice running at http://${HOST}:${PORT}`);
   console.log(`Model: ${MODEL} | Case packs: ${Object.keys(cases).length}`);
   if (!API_KEY) console.warn('WARNING: DEEPSEEK_API_KEY missing - set it in .env');
+  if (DASHSCOPE_API_KEY && HAS_NATIVE_WS) console.log(`TTS: DashScope Sambert enabled (${TTS_VOICES.length} voices)`);
+  else if (DASHSCOPE_API_KEY && !HAS_NATIVE_WS) console.warn('WARNING: DASHSCOPE_API_KEY set but Node < 22 has no native WebSocket - server TTS disabled');
+  if (EDGE_TTS_ENABLED && HAS_NATIVE_WS) console.log(`TTS: Edge TTS enabled (free, ${EDGE_VOICES.length} curated voices)`);
+  if (!DASHSCOPE_API_KEY && !(EDGE_TTS_ENABLED && HAS_NATIVE_WS)) console.warn('WARNING: no TTS provider active - browser speechSynthesis fallback only. Add DASHSCOPE_API_KEY or enable Edge TTS.');
 });
 
 if (HOST === '127.0.0.1') {
