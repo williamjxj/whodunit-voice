@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID, createHash } from 'node:crypto';
+import { isR2Enabled, r2GetObject } from './r2.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -32,6 +33,7 @@ const DASHSCOPE_API_KEY = process.env.DASHSCOPE_API_KEY || env.DASHSCOPE_API_KEY
 const TTS_WS_URL = (process.env.DASHSCOPE_TTS_URL || env.DASHSCOPE_TTS_URL || 'wss://dashscope.aliyuncs.com/api-ws/v1/inference').replace(/\/$/, '');
 const HAS_NATIVE_WS = typeof WebSocket !== 'undefined';
 const EDGE_TTS_ENABLED = String(process.env.EDGE_TTS_ENABLED ?? env.EDGE_TTS_ENABLED ?? '1') !== '0';
+const R2_IMAGES_ENABLED = isR2Enabled();
 
 const CASES_DIR = path.join(__dirname, 'data', 'cases');
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -157,6 +159,10 @@ const SAMBERT_TO_EDGE = {
 
 const TTS_CACHE_MAX = 64;
 const ttsCache = new Map();
+
+const IMG_CACHE_MAX = 50;
+const imgCache = new Map();
+let lastImgWarnAt = 0;
 
 function clampNum(value, min, max) {
   return Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
@@ -755,6 +761,32 @@ function sendJson(res, status, payload) {
   res.end(body);
 }
 
+/* ---- R2-proxied character images (fall back to local static files) ---- */
+async function serveR2Image(res, pathname) {
+  const key = pathname.slice(1); // 'characters/<caseId>/<charId>_<variant>.png'
+  const cached = imgCache.get(key);
+  if (cached) {
+    res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': cached.length });
+    res.end(cached);
+    return true;
+  }
+  let buf = null;
+  try {
+    buf = await r2GetObject(key);
+  } catch (err) {
+    if (Date.now() - lastImgWarnAt > 10000) {
+      lastImgWarnAt = Date.now();
+      console.warn(`R2 取图失败，回退本地：${err.message}`);
+    }
+  }
+  if (!buf) return false; // 404 or error -> serveStatic (local file) path
+  if (imgCache.size >= IMG_CACHE_MAX) imgCache.delete(imgCache.keys().next().value);
+  imgCache.set(key, buf);
+  res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': buf.length });
+  res.end(buf);
+  return true;
+}
+
 function serveStatic(req, res, urlPath) {
   const safePath = path.normalize(decodeURIComponent(urlPath)).replace(/^(\.\.[/\\])+/, '');
   let filePath = path.join(PUBLIC_DIR, safePath === '/' ? 'index.html' : safePath);
@@ -993,6 +1025,10 @@ const handler = async (req, res) => {
       return;
     }
 
+    if (R2_IMAGES_ENABLED && pathname.startsWith('/characters/') && /\.png$/i.test(pathname)) {
+      if (await serveR2Image(res, pathname)) return;
+    }
+
     serveStatic(req, res, pathname);
   } catch (err) {
     const status = /DeepSeek|DashScope|TTS/.test(err.message) ? 502 : 400;
@@ -1007,6 +1043,7 @@ server.listen(PORT, HOST, () => {
   if (DASHSCOPE_API_KEY && HAS_NATIVE_WS) console.log(`TTS: DashScope Sambert enabled (${TTS_VOICES.length} voices)`);
   else if (DASHSCOPE_API_KEY && !HAS_NATIVE_WS) console.warn('WARNING: DASHSCOPE_API_KEY set but Node < 22 has no native WebSocket - server TTS disabled');
   if (EDGE_TTS_ENABLED && HAS_NATIVE_WS) console.log(`TTS: Edge TTS enabled (free, ${EDGE_VOICES.length} curated voices)`);
+  if (R2_IMAGES_ENABLED) console.log('R2: /characters/* 图片从 Cloudflare R2 提供（缺失回退本地）');
   if (!DASHSCOPE_API_KEY && !(EDGE_TTS_ENABLED && HAS_NATIVE_WS)) console.warn('WARNING: no TTS provider active - browser speechSynthesis fallback only. Add DASHSCOPE_API_KEY or enable Edge TTS.');
 });
 
