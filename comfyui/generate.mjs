@@ -18,6 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { characters, NEGATIVE, buildPrompt, CHECKPOINT_ALIASES } from './config/characters.mjs';
+import { isR2Enabled, r2PutObject } from '../r2.mjs';
 
 const COMFY = process.env.COMFY_URL || 'http://127.0.0.1:8188';
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -227,6 +228,15 @@ async function downloadImage(img, destPath) {
   const buf = Buffer.from(await res.arrayBuffer());
   fs.mkdirSync(path.dirname(destPath), { recursive: true });
   fs.writeFileSync(destPath, buf);
+  if (isR2Enabled()) {
+    try {
+      const key = `characters/${path.relative(path.join(ROOT, 'public'), destPath).split(path.sep).join('/')}`;
+      await r2PutObject(key, buf, 'image/png');
+      console.log(`  R2 ↑ ${key}`);
+    } catch (err) {
+      console.warn(`  R2 上传失败（本地文件已保留）：${err.message}`);
+    }
+  }
   return buf;
 }
 
