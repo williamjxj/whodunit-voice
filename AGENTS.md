@@ -8,6 +8,7 @@ Voice-driven murder-mystery game: browser frontend (`public/`) talks to a zero-d
 - `node server.js` (or `npm start`) → serves `public/` + API on `127.0.0.1:4310` **and** `[::1]` (dual-stack bind; macOS browsers hit `localhost` via IPv6 — don't remove the second listener).
 - Env: `cp .env.example .env`, fill `DEEPSEEK_API_KEY`. `server.js` parses `.env` with its own mini-parser (no dotenv); real process env wins. `.env` is gitignored — never commit keys.
 - Verification without tests: `node --check server.js`, then `curl http://127.0.0.1:4310/api/health`. DeepSeek-dependent endpoints (`/api/chat`, `/api/accuse`) fail with 502 if the key is bad/quotas exhausted.
+- R2 tests (if enabled): `node --test test/r2.test.mjs` — unit tests for config/signing + a live upload/fetch round-trip (auto-skips when `R2_IMAGES_ENABLED` is off).
 
 ## Architecture
 
@@ -19,6 +20,7 @@ Voice-driven murder-mystery game: browser frontend (`public/`) talks to a zero-d
   - `sambert` — DashScope Sambert via native Node WebSocket (`wss://dashscope.aliyuncs.com/api-ws/v1/inference`, `Authorization: Bearer $DASHSCOPE_API_KEY`), returns WAV. Registry: `TTS_VOICES` in `server.js`.
   - `edge` — Microsoft Edge TTS, free, no key (curated registry `EDGE_VOICES`, live endpoint has ~322 voices; protocol: `wss://speech.platform.bing.com/...` with a `Sec-MS-GEC` token), returns MP3. `SAMBERT_TO_EDGE` maps each Sambert voice to a same-gender/age Edge voice so per-suspect flavor survives the free provider.
   - Auto-priority: Sambert if `DASHSCOPE_API_KEY` set, else Edge, else client browser `speechSynthesis`. Suspects declare `voice`/`voiceRate`/`voicePitch` in `suspects.json` (safe to send — no secret/guilt). `GET /api/tts/voices` returns both registries + `activeProvider` + `sambertToEdge`. TTS text is capped at 1000 chars; 45s (Sambert) / 30s (Edge) timeouts; small in-memory cache.
+- R2 (optional): `r2.mjs` — zero-dependency SigV4 client (alias env: `ACCOUNT_ID`/`R2_ACCOUNT_ID`/`S3_API`, `BUCKET_NAME`/`R2_BUCKET_NAME`, `R2_ENDPOINT`). When `R2_IMAGES_ENABLED=1`: `comfyui/generate.mjs` uploads each generated image to bucket `whodunit` under `characters/<caseId>/<id>_<variant>.png` (warn-and-continue); `server.js` serves `/characters/*.png` from R2 with local fallback + FIFO cache. `public/characters/` is gitignored.
 
 ## Adding a case (pluggable, no code changes)
 
@@ -36,6 +38,7 @@ Use an existing pack (`data/cases/jade-pavilion/`) as the schema reference.
 
 - **Anti-cheat**: `/api/case` must never send `solution`, `secret`, or `guilt` — it strips suspects to id/name/role/emoji/age/shortBio only. Truth exists only server-side (`case.json.solution`, `suspects[].guilt`). New endpoints must preserve this.
 - **Clue unlocking is deterministic client-side keyword matching** (`unlockClues()` in `public/app.js`): the player's question text is matched case-insensitively against `clues[].keywords`. Not LLM-based. Keywords should be words players will plausibly speak; +20 pts per clue, +40 for correct accusation.
+- **R2 serves images only** — the proxy must never touch `solution`/`secret`/`guilt`.
 
 ## i18n gotchas
 

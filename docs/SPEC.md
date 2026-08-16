@@ -277,3 +277,23 @@ DeepSeek API (api.deepseek.com) / DashScope (dashscope.aliyuncs.com)
   和风绅士/大学生名探）头像可选，选择持久化到 localStorage，简报页显示
   「你的侦探」徽章（配图 `characters/detective/<id>_logo.png`）；
 - 全部 76 张角色图已生成并随仓库提交，前端零配置即显示。
+
+## 19. R2 图片存储（可选，v0.7.3）
+
+Cloudflare R2 对象存储作为生成图像的**备份与可选分发源**（详见 `docs/oc_r2_image_storage_design.md`）：
+
+**环境变量**（`.env`，均接受别名）
+- `R2_IMAGES_ENABLED=1` 总开关（1/true/yes/on 均视为开启）；
+- `ACCOUNT_ID`（也接受 `R2_ACCOUNT_ID` / `CLOUDFLARE_ACCOUNT_ID`）；
+- `R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`；
+- `BUCKET_NAME`（也接受 `R2_BUCKET_NAME`，或从 `S3_API` 解析）；
+- `R2_ENDPOINT` 可选覆盖，默认 `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`。
+
+**两种模式**
+- 本地模式（默认）：图像只存 `public/characters/`，`server.js` 静态服务直接提供；
+- R2 模式（`R2_IMAGES_ENABLED=1`）：`comfyui/generate.mjs` 出图后除本地外同步上传
+  bucket `whodunit` 的 `characters/<caseId>/<id>_<variant>.png`（失败仅告警不中断）；
+  `server.js` 对 `/characters/*.png` 走零依赖 SigV4 代理（`r2.mjs`）从 R2 取图，
+  内存 FIFO 缓存 50 张，R2 缺失/出错回退本地静态文件；非 PNG 路径不拦截。
+
+**防作弊**：R2 仅存图片，代理链路永不接触 `solution`/`secret`/`guilt`。

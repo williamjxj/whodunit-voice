@@ -259,3 +259,21 @@ MacBook M3 18GB）持续出图；按人物选择模型；侦探可选福尔摩�
 - [x] Sterling Affair：英文长标签图上截断为 `CFO and business partner…`，列表保留全文
 - [x] `node --check public/app.js` 通过；无 console 报错
 - [x] 反作弊不变：/api/case 仍只透传 voice 字段；无 secret/guilt/solution
+
+## v0.7.3 R2 图片存储（2026-08-16）
+
+设计：`docs/oc_r2_image_storage_design.md`（server proxy + SigV4，用户已确认）；
+实施：`docs/oc_r2_image_storage_plan.md` 五任务全部完成。
+
+- [x] `r2.mjs`：零依赖 SigV4 客户端（node:crypto + fetch，移植自用户 rh-comfyui-app），
+  环境变量别名兼容 LianHuanAI `S3_API` 风格；单开关 `R2_IMAGES_ENABLED` 同时管上传与提供。
+- [x] `test/r2.test.mjs`：11 项 node:test 全过，含 live 回环（真实上传 whodunit bucket 再取回逐字节比对）。
+- [x] `comfyui/generate.mjs`：出图落盘后同步上传 R2（`characters/<caseId>/<id>_<variant>.png`），
+  失败仅 `console.warn` 不中断；`--dry-run`/`--build-only` 不产生文件故不上传。
+- [x] `server.js`：`/characters/*.png` 经 R2 代理（FIFO 缓存 50 张，R2 缺失/出错回退本地），
+  非 PNG 直通静态服务；启动日志显示 R2 模式。
+- [x] curl 验证（R2 开）：`zhao_logo.png` 本地文件移走后仍 200 image/png（937557 字节，来自 R2），
+  二次请求走缓存；manifest.json 仍为 JSON（非 PNG 不拦截）；缺失图 404。
+- [x] curl 回归（R2 关 `R2_IMAGES_ENABLED=0`）：同路径 200/404，无 R2 日志行。
+- [x] `.env.example` 补 R2 段；`public/characters/` 已 gitignore 且已从 git 移除（commit 9fe6944），
+  生图不再入库（用户目标：不占 GitHub 空间）。
