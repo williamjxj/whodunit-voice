@@ -1,12 +1,26 @@
 # Whodunit Voice - 语音互动探案
 
 <p align="center">
-  <img src="poster/poster.jpeg" alt="Whodunit Voice 语音互动探案海报：开口，就能破案。🎙️开口审问 AI 嫌疑人 🔍细听解锁线索 ⚖️带着证据指控真凶" width="380" style="max-width:100%;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.2)">
+  <img src="screenshots/homepage.png" alt="Whodunit Voice 首页：6 个案件卡片 + 侦探选择，真实人物头像" width="880" style="max-width:100%;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.2)">
+</p>
+
+<p align="center">
+  🎙️ 开口审问 AI 嫌疑人 · 🔊 多角色智能配音 · 🖼️ 动画风人物头像 · ⚖️ 带着证据指控真凶
 </p>
 
 一个浏览器端的**语音驱动互动谋杀推理游戏**：用声音（或打字）审问嫌疑人，
 收集证据，指控真凶。嫌疑人由 DeepSeek V4 Flash 实时扮演，法官由同一模型判定指控。
 案件与全部数据为虚构（fake data）。
+
+## 首页一览
+
+- **6 个案件**一屏尽览：中英文案件卡片带真实人物头像、难度星级、最佳得分与「继续」标记；
+- **选择你的侦探**：福尔摩斯、柯南、狄仁杰……5 位人气侦探任选，决定你的探案风格；
+- 点卡片即可接案；进度自动保存，刷新或关页后回来可一键续玩。
+
+<p align="center">
+  <img src="poster/poster.jpeg" alt="Whodunit Voice 语音互动探案海报：开口，就能破案" width="380" style="max-width:100%;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.2)">
+</p>
 
 ## 快速开始
 
