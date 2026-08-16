@@ -277,3 +277,7 @@ MacBook M3 18GB）持续出图；按人物选择模型；侦探可选福尔摩�
 - [x] curl 回归（R2 关 `R2_IMAGES_ENABLED=0`）：同路径 200/404，无 R2 日志行。
 - [x] `.env.example` 补 R2 段；`public/characters/` 已 gitignore 且已从 git 移除（commit 9fe6944），
   生图不再入库（用户目标：不占 GitHub 空间）。
+- [x] 目录重构：`r2.mjs` 移入 `comfyui/cloudflareR2/`（与 ComfyUI 相关能力同目录，结构更清晰）；
+  新增 `comfyui/cloudflareR2/sync.mjs` 批量上传脚本（不用重跑出图即可补传旧图）；
+  `.env` 解析改为按 REPO_ROOT 回溯；server.js / generate.mjs / test 的 import 路径同步更新。
+- [x] 全量补传（2026-08-16）：`sync.mjs` 上传 76 张全部成功，移走本地文件后 curl 仍 200（字节来自 R2）。

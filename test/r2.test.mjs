@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { r2Config, isR2Enabled, signR2Request, r2GetObject, r2PutObject } from '../r2.mjs';
+import { r2Config, isR2Enabled, signR2Request, r2GetObject, r2PutObject } from '../comfyui/cloudflareR2/r2.mjs';
 
 const FULL = { ACCOUNT_ID: 'abc123', R2_ACCESS_KEY_ID: 'k', R2_SECRET_ACCESS_KEY: 's', BUCKET_NAME: 'whodunit' };
 

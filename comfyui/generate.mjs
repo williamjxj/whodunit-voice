@@ -18,7 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { characters, NEGATIVE, buildPrompt, CHECKPOINT_ALIASES } from './config/characters.mjs';
-import { isR2Enabled, r2PutObject } from '../r2.mjs';
+import { isR2Enabled, r2PutObject } from './cloudflareR2/r2.mjs';
 
 const COMFY = process.env.COMFY_URL || 'http://127.0.0.1:8188';
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');

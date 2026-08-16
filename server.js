@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID, createHash } from 'node:crypto';
-import { isR2Enabled, r2GetObject } from './r2.mjs';
+import { isR2Enabled, r2GetObject } from './comfyui/cloudflareR2/r2.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
