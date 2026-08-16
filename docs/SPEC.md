@@ -273,4 +273,7 @@ DeepSeek API (api.deepseek.com) / DashScope (dashscope.aliyuncs.com)
 **新增页面能力**
 - 案件选择页每张卡片显示受害者画像（`/api/cases` 返回 `victimId`，前端
   `characters/<caseId>/<victimId>_logo.png`，缺失回退 emoji）；
+- 案件选择页新增「🕵️ 选择你的侦探」：5 位原创侦探（福尔摩斯风/狄仁杰/少年侦探/
+  和风绅士/大学生名探）头像可选，选择持久化到 localStorage，简报页显示
+  「你的侦探」徽章（配图 `characters/detective/<id>_logo.png`）；
 - 全部 76 张角色图已生成并随仓库提交，前端零配置即显示。

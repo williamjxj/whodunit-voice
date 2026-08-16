@@ -11,6 +11,9 @@
       pts: ' pts',
       choose_case: 'Choose a case',
       case_select_hint: 'Three cases. Different languages, same rule: find the killer.',
+      detective_title: '🕵️ Choose your detective',
+      detective_sub: 'Who will crack the case?',
+      detective_yours: 'Your detective: ',
       briefing_title: 'Case Briefing',
       scene_title: '🔍 Crime Scene',
       relations_title: '🕸️ Relationships',
@@ -113,6 +116,9 @@
       pts: ' 分',
       choose_case: '选择案件',
       case_select_hint: '三个案件，中英双语，规则相同：找出真凶。',
+      detective_title: '🕵️ 选择你的侦探',
+      detective_sub: '谁来破这桩案子？',
+      detective_yours: '你的侦探：',
       briefing_title: '案件简报',
       scene_title: '🔍 案发现场',
       relations_title: '🕸️ 人物关系',
@@ -220,6 +226,16 @@
   const BEST_PREFIX = 'whodunit_v2_best_';
   const SFX_KEY = 'whodunit_v2_sfx';
   const TTS_KEY = 'whodunit_v2_tts';
+  const DETECTIVE_KEY = 'whodunit_v2_detective';
+
+  /* 玩家侦探形象（原创原型，配图在 public/characters/detective/） */
+  const DETECTIVES = [
+    { id: 'sherlock', emoji: '🕵️', en: 'Sherlock', zh: '福尔摩斯风', enSub: 'British consulting detective', zhSub: '英伦烟斗名侦探' },
+    { id: 'di_renjie', emoji: '👨‍⚖️', en: 'Judge Di', zh: '狄仁杰', enSub: 'Tang dynasty grand judge', zhSub: '大唐神探' },
+    { id: 'boy_detective', emoji: '🧢', en: 'Boy Detective', zh: '少年名侦探', enSub: 'Genius young sleuth', zhSub: '元气少年侦探' },
+    { id: 'japanese_gentleman', emoji: '🎩', en: 'Taisho Gentleman', zh: '和风绅士', enSub: 'Elegant Taisho-era detective', zhSub: '大正时代绅士侦探' },
+    { id: 'japanese_student', emoji: '📚', en: 'Student Sleuth', zh: '大学生名探', enSub: 'Sharp university sleuth', zhSub: '犀利大学生名探' },
+  ];
   const MOODS = {
     calm: { emoji: '😌' },
     uneasy: { emoji: '😅' },
@@ -264,6 +280,8 @@
     $$('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
     $$('[data-i18n-ph]').forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
     document.documentElement.lang = state.lang === 'zh' ? 'zh-CN' : 'en';
+    renderDetectivePicker();
+    updateDetectiveChip();
   }
 
   function showScreen(id) {
@@ -298,6 +316,55 @@
     img.src = charImg(caseId, id, variant);
     img.onerror = () => { box.textContent = emojiFallback || '❓'; };
     box.appendChild(img);
+  }
+
+  /* ---- detective selection（玩家化身，本地持久化） ---- */
+  function detById(id) { return DETECTIVES.find((d) => d.id === id); }
+  function detName(d) { return d ? (state.lang === 'zh' ? d.zh : d.en) : ''; }
+  function detSub(d) { return d ? (state.lang === 'zh' ? d.zhSub : d.enSub) : ''; }
+  function renderDetectivePicker() {
+    const box = $('#detective-picker');
+    if (!box) return;
+    box.innerHTML = '';
+    DETECTIVES.forEach((d) => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'detective-item' + (d.id === state.detectiveId ? ' selected' : '');
+      item.title = detSub(d);
+      const img = document.createElement('img');
+      img.src = charImg('detective', d.id, 'logo');
+      img.alt = detName(d);
+      img.loading = 'lazy';
+      img.onerror = () => { img.replaceWith(document.createTextNode(d.emoji)); };
+      const name = document.createElement('span');
+      name.className = 'detective-name';
+      name.textContent = detName(d);
+      item.append(img, name);
+      item.addEventListener('click', () => selectDetective(d.id));
+      box.appendChild(item);
+    });
+  }
+  function selectDetective(id) {
+    state.detectiveId = id;
+    try { localStorage.setItem(DETECTIVE_KEY, id); } catch { /* noop */ }
+    renderDetectivePicker();
+    updateDetectiveChip();
+  }
+  function updateDetectiveChip() {
+    const chip = $('#detective-chip');
+    if (!chip) return;
+    const d = detById(state.detectiveId);
+    if (!d) { chip.hidden = true; return; }
+    chip.hidden = false;
+    chip.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = charImg('detective', d.id, 'logo');
+    img.alt = detName(d);
+    img.loading = 'lazy';
+    img.onerror = () => { img.replaceWith(document.createTextNode(d.emoji)); };
+    const span = document.createElement('span');
+    span.textContent = t('detective_yours') + detName(d);
+    chip.append(img, span);
   }
 
   /* ---- sound effects (WebAudio, zero files) ---- */
@@ -433,6 +500,9 @@
   /* ---- case select ---- */
   async function init() {
     state.saved = loadSaved();
+    state.detectiveId = localStorage.getItem(DETECTIVE_KEY) || 'sherlock';
+    renderDetectivePicker();
+    updateDetectiveChip();
     initTts(); // non-blocking; voice list arrives whenever ready
     try {
       const res = await fetch('/api/cases');

@@ -448,6 +448,33 @@ main { max-width: 980px; margin: 0 auto; padding: 24px 18px 60px; }
 .case-badge.continue-badge { color: var(--green); border: 1px solid var(--green); background: rgba(76, 175, 125, 0.1); }
 .case-badge.best-badge { color: var(--gold-2); border: 1px solid var(--gold); background: rgba(212, 175, 55, 0.1); }
 
+/* ---- detective picker ---- */
+.detective-section { margin: 18px 0 20px; padding-top: 16px; border-top: 1px dashed var(--border); }
+.detective-section h2 { color: var(--gold-2); margin: 0 0 4px; font-size: 17px; }
+.detective-sub { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+.detective-picker { display: flex; gap: 10px; flex-wrap: wrap; }
+.detective-item {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 94px; padding: 10px 6px 8px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  cursor: pointer; color: var(--text); font: inherit;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.detective-item:hover { transform: translateY(-2px); border-color: var(--gold); }
+.detective-item.selected { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.28); }
+.detective-item img {
+  width: 62px; height: 62px; object-fit: cover; object-position: center 20%;
+  border-radius: 50%; border: 2px solid var(--border);
+}
+.detective-item.selected img { border-color: var(--gold); }
+.detective-name { font-size: 12px; line-height: 1.2; text-align: center; }
+.detective-chip {
+  display: inline-flex; align-items: center; gap: 8px; margin: 8px 0 4px;
+  padding: 5px 12px 5px 5px; border: 1px solid var(--border); border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04); font-size: 13px; color: var(--text);
+}
+.detective-chip img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; object-position: center 20%; }
+
 /* ---- verdict evidence / postmortem ---- */
 .verdict-evidence { text-align: left; margin: 10px 0; }
 .verdict-evidence h5 { color: var(--gold); font-size: 14px; margin-bottom: 6px; }

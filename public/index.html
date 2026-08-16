@@ -29,6 +29,11 @@
       <div class="card">
         <h2 data-i18n="choose_case">Choose a case</h2>
         <p class="hint-note" data-i18n="case_select_hint">Three cases. Different languages, same rule: find the killer.</p>
+        <div class="detective-section">
+          <h2 data-i18n="detective_title">🕵️ Choose your detective</h2>
+          <p class="detective-sub" data-i18n="detective_sub">Who will crack the case?</p>
+          <div id="detective-picker" class="detective-picker"></div>
+        </div>
         <div id="case-grid" class="case-grid"></div>
       </div>
     </section>
@@ -45,6 +50,7 @@
           </div>
         </div>
         <div class="case-facts" id="case-facts"></div>
+        <div id="detective-chip" class="detective-chip" hidden></div>
         <p class="briefing-text" id="briefing-text"></p>
         <div class="scene-box">
           <h3><span data-i18n="scene_title">🔍 Crime Scene</span></h3>
