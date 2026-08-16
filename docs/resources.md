@@ -10,6 +10,7 @@
 | DeepSeek API key | **Required** | 嫌疑人扮演与法官判定 |
 | DashScope API key（`DASHSCOPE_API_KEY`） | **可选，强烈建议** | 多音色 Sambert TTS（不配则回退浏览器单一语音） |
 | Edge TTS（`EDGE_TTS_ENABLED=1`） | **可选（默认开）** | 免费多音色源（322+ 音色，无需 Key）；无 DashScope Key 时自动作为主音色源 |
+| 本地 ComfyUI（`127.0.0.1:8188`） | **可选** | 生成人物画像用（国风4 / Animagine XL 4.0，见 [comfyui/README.md](../comfyui/README.md)）；已提交 76 张图，不跑 ComfyUI 也不影响游戏 |
 | 浏览器（Chrome/Edge/Safari） | **Yes** | 语音识别/合成走浏览器原生 Web Speech API |
 | Docker | **No** | 未使用 |
 | 数据库 (PostgreSQL/Redis/SQLite) | **No** | 案件数据为本地 JSON 文件 |
@@ -60,6 +61,8 @@ cp .env.example .env   # 然后填入真实 key
 - 不需要任何 npm 包、构建工具、外网部署。
 - 语音识别由浏览器内置完成；语音合成按优先级：阿里云 Sambert（可选 Key）→
   微软 Edge TTS（免费，无需 Key）→ 浏览器 speechSynthesis 兜底。
+- 人物画像已随仓库提交（`public/characters/`，76 张 PNG）；本地 ComfyUI 仅用于
+  后续"换形象/重出图"（`node comfyui/generate.mjs`），非运行必需。
 
 ## 灵感来源 (Inspiration)
 
