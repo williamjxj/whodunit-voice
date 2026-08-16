@@ -18,7 +18,7 @@
 - **Serving contract**: only intercept `pathname.startsWith('/characters/')` AND `/\.png$/i`. Non-PNG paths (e.g. `/characters/manifest.json`) fall straight through to `serveStatic`. R2 404 or error → fall back to `serveStatic`. R2 success → `Content-Type: image/png`, `Content-Length`, no `Cache-Control` override.
 - **Upload contract**: local file is the source of truth. Upload failure → `console.warn`, never throw/abort generation. `--dry-run`/`--build-only` produce no files, hence no uploads.
 - **SigV4 specifics (from rh-comfyui-app commit c47554c)**: region `auto`, service `s3`; sign `host`, `x-amz-date`, `x-amz-content-sha256` always; sign `content-type` when set; **sign `content-length` when a body is present** (R2 rejects otherwise); body hash = hex sha256 (empty string when no body); Authorization = `AWS4-HMAC-SHA256 Credential=<keyId>/<dateStamp>/auto/s3/aws4_request, SignedHeaders=..., Signature=...`.
-- **Git discipline**: the working tree contains the user's unrelated staged WIP. NEVER `git add -A` / `git add .`. Stage only the feature files listed in each commit step (pathspec). Committing `comfyui/generate.mjs`, `.gitignore`, `docs/SPEC.md`, `docs/PLAN.md` will include pre-existing staged edits on those files — this is expected and acceptable (they are all touched by this feature); do not try to separate them.
+- **Git discipline**: the working tree contains the user's unrelated staged WIP. NEVER `git add -A` / `git add .`, and NEVER `git add X && git commit -m ...` (a plain `git commit` commits the ENTIRE pre-staged index — the WIP sweep hazard). Commit directly with the pathspec form `git commit <paths> -m "msg"`, which commits only those paths and leaves the rest of the index untouched. Committing `comfyui/generate.mjs`, `.gitignore`, `docs/SPEC.md`, `docs/PLAN.md` will include pre-existing staged edits on those files — this is expected and acceptable (they are all touched by this feature); do not try to separate them.
 - **Anti-cheat**: never introduce an endpoint or code path that ships `solution`/`secret`/`guilt` to the client. R2 only serves images.
 - **Test runner**: use built-in `node --test` (Node >= 18). Tests live in `test/`. Live tests must skip when R2 not enabled: `{ skip: !isR2Enabled() }`.
 
@@ -303,8 +303,7 @@ Expected: all tests PASS. The `live:` test runs only if `.env` has `R2_IMAGES_EN
 - [ ] **Step 5: Commit**
 
 ```bash
-git add r2.mjs test/r2.test.mjs
-git commit -m "feat: R2 SigV4 客户端模块 r2.mjs + node:test 单测（含 live 回环）"
+git commit r2.mjs test/r2.test.mjs -m "feat: R2 SigV4 客户端模块 r2.mjs + node:test 单测（含 live 回环）"
 ```
 
 ---
@@ -368,8 +367,7 @@ Expected: prints `→ public/characters/jade-pavilion/zhao_logo.png` AND `R2 ↑
 - [ ] **Step 5: Commit**
 
 ```bash
-git add comfyui/generate.mjs
-git commit -m "feat: comfyui 出图同步上传 R2（失败告警不中断）"
+git commit comfyui/generate.mjs -m "feat: comfyui 出图同步上传 R2（失败告警不中断）"
 ```
 
 > Note: `comfyui/generate.mjs` is a pre-existing staged new file in the user's WIP; this commit includes its full current content (expected per Global Constraints).
@@ -468,8 +466,7 @@ Expected: `200 image/png` (served from R2; local file exists too, so to prove R2
 - [ ] **Step 8: Commit**
 
 ```bash
-git add server.js
-git commit -m "feat: /characters/* 图片经 R2 SigV4 代理提供（回退本地 + 内存缓存）"
+git commit server.js -m "feat: /characters/* 图片经 R2 SigV4 代理提供（回退本地 + 内存缓存）"
 ```
 
 ---
@@ -517,8 +514,7 @@ Expected: no `public/characters` entries in the index (only untracked `??` or no
 - [ ] **Step 5: Commit**
 
 ```bash
-git add .env.example .gitignore
-git commit -m "chore: R2 环境变量示例 + gitignore public/characters（生图不再入库）"
+git commit .env.example .gitignore public/characters -m "chore: R2 环境变量示例 + gitignore public/characters（生图不再入库）"
 ```
 
 ---
@@ -568,8 +564,7 @@ Expected: every check passes. The `404` case proves the local-fallback miss path
 - [ ] **Step 5: Commit**
 
 ```bash
-git add AGENTS.md docs/SPEC.md docs/PLAN.md
-git commit -m "docs: 同步 R2 图片存储（AGENTS/SPEC/PLAN）"
+git commit AGENTS.md docs/SPEC.md docs/PLAN.md -m "docs: 同步 R2 图片存储（AGENTS/SPEC/PLAN）"
 ```
 
 > Note: `docs/SPEC.md` and `docs/PLAN.md` carry pre-existing staged user edits; this commit includes them (expected per Global Constraints).
