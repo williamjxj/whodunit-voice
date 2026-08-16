@@ -82,6 +82,7 @@ main { max-width: 980px; margin: 0 auto; padding: 24px 18px 60px; }
 .briefing-card h2, .lobby-head h2 { color: var(--gold); margin-bottom: 14px; }
 .victim-row { display: flex; gap: 16px; align-items: center; background: var(--bg-2); padding: 14px; border-radius: 12px; margin-bottom: 18px; }
 .victim-emoji { font-size: 40px; }
+.victim-img { width: 64px; height: 64px; object-fit: cover; border-radius: 12px; display: block; }
 .victim-name { font-size: 20px; font-weight: bold; }
 .victim-meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
 .victim-bio { color: var(--muted); font-size: 13px; line-height: 1.6; margin-top: 6px; font-style: italic; }
@@ -190,6 +191,7 @@ main { max-width: 980px; margin: 0 auto; padding: 24px 18px 60px; }
 }
 .suspect-card:hover { transform: translateY(-3px); border-color: var(--gold); }
 .suspect-card .avatar { font-size: 46px; }
+.suspect-card .avatar-img { width: 84px; height: 84px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto; border: 1px solid var(--border); }
 .suspect-card .name { font-weight: bold; margin-top: 8px; }
 .suspect-card .role { color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.4; }
 .suspect-card .bio { color: var(--muted); font-size: 12px; line-height: 1.5; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -211,9 +213,20 @@ main { max-width: 980px; margin: 0 auto; padding: 24px 18px 60px; }
 .interview-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); }
 .suspect-head { display: flex; gap: 14px; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 14px; }
 .suspect-head .avatar { font-size: 42px; }
+.suspect-head .avatar-img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; display: block; border: 1px solid var(--border); }
 .suspect-head .name { font-size: 19px; font-weight: bold; }
 .suspect-head .role { color: var(--muted); font-size: 13px; }
 .suspect-head .head-side { margin-left: auto; text-align: right; display: flex; flex-direction: column; gap: 6px; }
+
+.portrait-box {
+  max-width: 300px;
+  margin: 0 auto 14px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.portrait-box img { width: 100%; height: auto; display: block; }
 .mood-chip {
   font-size: 12px;
   border-radius: 999px;
@@ -396,6 +409,25 @@ main { max-width: 980px; margin: 0 auto; padding: 24px 18px 60px; }
   position: relative;
 }
 .case-card:hover { transform: translateY(-3px); border-color: var(--gold); }
+.case-card .case-art {
+  height: 110px;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 4px 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.18));
+  border: 1px solid var(--border);
+}
+.case-card .case-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 22%;
+  display: block;
+}
 .case-card .lang-badge {
   position: absolute; top: 14px; right: 14px;
   font-size: 11px;

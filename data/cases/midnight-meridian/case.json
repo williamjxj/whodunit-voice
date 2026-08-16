@@ -6,6 +6,7 @@
   "difficulty": 3,
   "estimatedMinutes": 18,
   "victim": {
+    "id": "aldous",
     "name": "Aldous Vance",
     "age": 47,
     "emoji": "🎩",

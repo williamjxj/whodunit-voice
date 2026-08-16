@@ -5,6 +5,7 @@
   "difficulty": 2,
   "estimatedMinutes": 15,
   "victim": {
+    "id": "victor",
     "name": "Victor Sterling",
     "age": 54,
     "emoji": "🕴️",

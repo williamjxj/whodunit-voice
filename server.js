@@ -789,6 +789,7 @@ function caseSummaries() {
       tagline: m.tagline,
       victimName: m.victim && m.victim.name,
       victimEmoji: m.victim && m.victim.emoji,
+      victimId: m.victim && m.victim.id,
       location: m.location,
       time: m.time,
       difficulty: m.difficulty,

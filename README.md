@@ -57,6 +57,9 @@ UI、语音识别与朗读语言自动跟随案件语言（en-US / zh-CN）。
 - **听案件简报**：简报页新增「🔊 听案件简报」按钮，旁白音色朗读案情与案发现场。
 - **状态指示**：合成/播放期间，输入框下方显示「正在合成语音…… · 音色名」。
 - **语音提问**：点 🎤 说话（Chrome/Edge/Safari），或打字；回复朗读可用工具栏 🔊 开关关闭。
+- **人物画像**：每名嫌疑人都有专属头像（卡片/审问页）与表情肖像——审问中情绪
+  镇定/不安/破绽毕露时，肖像随之切换；图像由本地 ComfyUI 生成（见
+  [comfyui/README.md](comfyui/README.md)），生图即上线，缺失时自动回退 emoji。
 
 ## 架构
 
@@ -71,6 +74,7 @@ UI、语音识别与朗读语言自动跟随案件语言（en-US / zh-CN）。
 - 案件包：`data/cases/<caseId>/`（case.json / suspects.json / clues.json，可插拔）
 - 后端：`server.js`（静态服务 + /api/cases + /api/case + /api/chat + /api/accuse + /api/tts + /api/tts/voices + /api/health）
 - 前端：`public/index.html`、`public/styles.css`、`public/app.js`（含 I18N 字典）
+- 人物图像：`public/characters/<caseId>/<charId>_<variant>.png`；工作流与生成器在 `comfyui/`
 
 ## 关键设计
 
@@ -94,9 +98,10 @@ UI、语音识别与朗读语言自动跟随案件语言（en-US / zh-CN）。
 
 ## 文档
 
-- [SPEC.md](docs/SPEC.md) - 产品规格、假数据模型、API 契约、v0.2 更新
-- [PLAN.md](docs/PLAN.md) - 实施计划与两轮验证记录
+- [SPEC.md](docs/SPEC.md) - 产品规格、假数据模型、API 契约、版本记录（至 v0.7.2）
+- [PLAN.md](docs/PLAN.md) - 实施计划与验证记录
 - [resources.md](docs/resources.md) - 运行资源清单
+- [comfyui/README.md](comfyui/README.md) - 人物图像生成（动画风模型清单、ComfyUI 工作流）
 
 ## 安全提示
 

@@ -176,7 +176,9 @@ i18n 中英双写。
 - [x] 反作弊与 i18n 复检、语法检查、文档同步。
 
 待办（需用户配合）：
-- [ ] 用户提供 `DASHSCOPE_API_KEY` 后验证 Sambert 真实合成 + 15 音色逐一试听；
+- [x] 用户提供 `DASHSCOPE_API_KEY` 后验证 Sambert 真实合成（已实测：48kHz WAV 正常返回，
+  `X-TTS-Provider: sambert`）；
+- [ ] 15 音色逐一试听；
 - [ ] 移动端 Safari/Chrome 播放验证（MP3/WAV 解码与自动播放策略）；
 - [ ] 长文本（判决陈词）分段合成体验确认。
 

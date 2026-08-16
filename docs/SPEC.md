@@ -221,3 +221,56 @@ DeepSeek API (api.deepseek.com) / DashScope (dashscope.aliyuncs.com)
   让 15 名嫌疑人在免费源下仍然"男声男、女声女、各有人设"。
 - 自动优先级：有 `DASHSCOPE_API_KEY` 用 Sambert → 否则 Edge TTS（免费）→ 否则浏览器语音。
   `EDGE_TTS_ENABLED=0` 可关闭 Edge 源。`/api/tts/voices` 返回双注册表 + `activeProvider`。
+
+## 17. v0.7 更新（人物图像：ComfyUI 工作流 + 前端接入）
+
+**动机**：让案件角色"看得见"——每人一个 logo 头像 + 审问页 2-3 张表情肖像，
+跟随情绪徽章切换，增强代入感。
+
+**生成方案（本地 ComfyUI 8188，M3 18GB）**
+- 角色配置库 `comfyui/config/characters.mjs`：23 个角色（18 案件人物 + 5 侦探）的
+  形象/服装/年代/表情提示词，按案件匹配 checkpoint（动画风）：
+  玉簪案 → `4Guofeng4XL_v12.safetensors`（国风4，2.5D 中国古风动画/游戏 CG）、
+  Sterling / Midnight / 侦探 → `animagineXL40_v4Opt.safetensors`（Animagine XL 4.0 Opt，
+  日式动漫二次元）。两模型均为 SDXL ε-pred，内置 VAE，标准 KSampler 直接可用。
+- 生成器 `comfyui/generate.mjs`（零依赖）：先 txt2img 出 `logo`（固定种子），
+  再以 logo 为底做 img2img（denoise 0.62）派生 `calm/uneasy/cornered/portrait` 变体，
+  保证同一人脸型一致；支持 `--case/--char/--variants/--build-only/--dry-run`。
+  另有 `--list-models` 模型就位检查；checkpoint 按文件名精确/模糊自动匹配，
+  Civitai 下载的文件名略有出入也能识别。
+- 输出 `public/characters/<caseId>/<charId>_<variant>.png`；每角色 workflow JSON
+  自动生成于 `comfyui/workflows/`（76 个）。
+
+**前端接入（优雅降级）**
+- 嫌疑人卡片、审问页头部、受害者简报位：优先显示 logo 图，缺失自动回退 emoji；
+- 审问页新增表情肖像区：随情绪徽章切换 calm/uneasy/cornered（急躁复用 cornered），
+  图像缺失时隐藏；
+- `case.json` 的 `victim` 新增 `id`（图像命名用），随 /api/case 透传，无敏感信息。
+
+**实测记录**
+- 沈月娥 logo + calm 真实生成成功（832×1216 PNG，全链路 txt2img→上传→img2img 通过）；
+- 浏览器验证：卡片/头部/肖像三处图像插槽工作，无图角色回退 emoji 正常。
+- v0.7.2 全量完成：76 张全部成功（玉簪 22 / Sterling 22 / Midnight 22 / 侦探 10），
+  768×1024 PNG；案件卡片新增受害者画像（`/api/cases` 增补 `victimId`）。
+
+## 18. v0.7.2 更新（动画风切换 + 性能调优 + 全量出图）
+
+用户反馈：三款写实 checkpoint（xxmix9 / juggernaut / realvis lightning）不满意，
+要求国风动画 + 日本动漫二次元风（游戏感、轻松俏皮、不要真人写实）。
+
+**模型与画风**
+- 玉簪案 → 国风4（Civitai #118009）；其余案件与侦探 → Animagine XL 4.0 Opt
+  （Civitai #1188071）。提示词全面去写实化：负面禁 `photorealistic/film photography/8k uhd`，
+  正面加 `anime style / cel shading / clean lineart / guofeng game character` 等。
+
+**性能调优（M3 18GB + 外置盘 checkpoint 实测）**
+- 832×1216 / 24-26 步：单张 15+ 分钟（内存 swap），客户端 5 分钟超时频繁触发；
+- 改为 768×1024 + 国风 18 步 / Animagine 16 步 + Animagine 用 dpmpp_2m karras
+  （弃官方 SDE/beta，本机过慢）：模型常驻后单张 55-65 秒；
+- 客户端超时 15 分钟 + 超时前最后补查历史，避免"图已生成但客户端超时白跑"；
+- 连续生成约 40 分钟后内存压力回升，末段单张约 300 秒，属该机型常态。
+
+**新增页面能力**
+- 案件选择页每张卡片显示受害者画像（`/api/cases` 返回 `victimId`，前端
+  `characters/<caseId>/<victimId>_logo.png`，缺失回退 emoji）；
+- 全部 76 张角色图已生成并随仓库提交，前端零配置即显示。

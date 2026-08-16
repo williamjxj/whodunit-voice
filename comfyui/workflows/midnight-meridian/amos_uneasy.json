@@ -1,0 +1,105 @@
+{
+  "3": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 3053,
+      "steps": 16,
+      "cfg": 5,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 0.62,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "11",
+        0
+      ]
+    }
+  },
+  "4": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "animagineXL40_v4Opt.safetensors"
+    }
+  },
+  "5": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 768,
+      "height": 1024,
+      "batch_size": 1
+    }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "A weary 49-year-old train conductor of 1927, weathered kind face with a thick mustache, dark blue uniform with brass buttons and gold stripes, pocket watch on a chain, ticket punch, tired honest eyes, polishing his ticket punch with his thumb, glancing at a compartment door, uneasy, 1927 luxury train compartment, art deco, noir, warm lamp light, masterpiece, best quality, very aesthetic, absurdres, anime style, 1927 art deco noir, dramatic rim lighting, cel shading, clean lineart, moody atmospheric colors, game character art, expressive eyes",
+      "clip": [
+        "4",
+        1
+      ]
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "lowres, bad anatomy, bad hands, extra fingers, deformed hands, missing fingers, extra limbs, mutated, disfigured, blurry, jpeg artifacts, watermark, signature, text, logo, duplicate, cropped, out of frame, multiple people, photorealistic, realistic photo, photograph, film photography, 8k uhd, dslr, cinematic photo, live action, plastic skin",
+      "clip": [
+        "4",
+        1
+      ]
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "whodunit_midnight-meridian_amos_uneasy",
+      "images": [
+        "8",
+        0
+      ]
+    }
+  },
+  "10": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "whodunit_amos_logo.png"
+    }
+  },
+  "11": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "10",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    }
+  }
+}

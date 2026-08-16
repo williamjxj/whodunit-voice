@@ -140,7 +140,9 @@
 - [x] `node --check server.js` / `public/app.js` 通过；三个 suspects.json 全部合法且含 voice 字段
 - [x] 启动后 `/api/health` 返回 `tts.enabled:false`（未配 DASHSCOPE_API_KEY，符合预期降级）
 - [x] `GET /api/tts/voices` 返回 21 音色 + enabled:false；`POST /api/tts` 无 Key 时 502 + 明确报错文案
-- [ ] 真实语音合成待用户补 `DASHSCOPE_API_KEY` 后端到端验证（WAV 字节 + 浏览器播放 + 15 音色逐一试听）
+- [x] 真实语音合成端到端验证（2026-08-15 用户补 Key 后实测：`provider=sambert` 返回
+  48kHz/16bit mono WAV，时长 3.47s，`X-TTS-Provider: sambert`）
+- [ ] 15 音色逐一试听 + 移动端播放验证
 
 ## v0.6 免费音色源：Edge TTS（2026-08-15）
 
@@ -169,6 +171,77 @@
   「正在播放…… · 云夏」状态（Edge 合成 + Web Audio 播放链路贯通）
 - [x] `provider:'sambert'` 无 Key 时优雅降级：自动用 Edge 合成，返回 200 + MP3（不再 502）
 - [x] 数据一致性：15 名嫌疑人全部有 Edge 映射，21 个映射目标全部在 EDGE_VOICES 注册表内
+
+## v0.7 人物图像（ComfyUI 工作流 + 前端接入，2026-08-15）
+
+用户需求：每个案件人物一个 logo 头像 + 审问页 2-3 张表情图；本机 ComfyUI（8188，
+MacBook M3 18GB）持续出图；按人物选择模型；侦探可选福尔摩斯/柯南/狄仁杰/日本名探风格。
+
+**设计**
+- 保脸方案：txt2img 固定种子出 logo → img2img（denoise 0.62）派生表情变体；
+- 模型匹配：玉簪案（宋代古装）→ `xxmix9realisticsdxl`（亚洲写实）；
+  Sterling（现代英伦）→ `juggernautXL`；Midnight（1927 列车）+ 侦探 → `realvisxlV50_Lightning`（快速批量）；
+- 侦探为原创原型（福尔摩斯公有领域/狄仁杰历史人物/少年侦探等），不复制版权角色形象；
+- 输出 `public/characters/`，前端三处插槽（卡片头像/审问页头部/表情肖像 + 受害者简报位），
+  图像缺失自动回退 emoji，零代码即可"生图即上线"。
+
+**实现**
+| # | 文件 | 内容 |
+|---|---|---|
+| 1 | `comfyui/config/characters.mjs` | 23 角色提示词库（形象/服装/年代/表情/种子/参数） |
+| 2 | `comfyui/generate.mjs` | 零依赖生成器：API workflow 构造 + 提交 + 轮询 + 下载 + 上传 img2img 底图 |
+| 3 | `comfyui/workflows/` | 76 个 API workflow JSON（自动生成） |
+| 4 | `public/app.js` / `index.html` / `styles.css` | 头像/肖像插槽 + onerror 回退 |
+| 5 | `case.json` | victim 增加 `id`（图像命名） |
+| 6 | `comfyui/README.md` | 使用指南（模型策略/批量/故障排查） |
+
+**验证记录**
+- [x] 全链路真实出图：沈月娥 logo + calm（832×1216 PNG，txt2img→上传→img2img 通过）
+- [x] 浏览器：沈月娥卡片 logo、审问页头像 + 平静肖像（naturalWidth=832）；
+  未生成角色（赵文远等）回退 emoji 正常
+- [x] `node --check` 全绿；三案 case.json 合法
+
+**待办**
+- [ ] 批量生成全部 23 角色（`node comfyui/generate.mjs`，预计 1-2 小时）
+- [ ] 试听/调优个别角色的提示词（脸型、服装、表情强度）
+- [ ] 侦探头像选择入口（UI）
+
+**v0.7.1 一键全量 + 续跑（2026-08-15）**
+- 生成器新增断点续跑：已存在的图自动跳过（`--force` 强制重出），只补缺失变体；
+- 新增 `comfyui/generate-all.sh` 一键脚本（日志写 comfyui/logs/）；
+- img2img 底图惰性上传：logo 无论新生成还是本地已有，都会在第一个变体前确保已上传；
+- 每次跑完自动写 `public/characters/manifest.json`（图像清单）；
+- 实测：沈月娥补全 4 图（logo/calm/uneasy/cornered）；重跑全跳过、秒级结束；
+- `comfyui/README.md` 新增「必需模型清单」（3 个 checkpoint + 可选升级）。
+
+**v0.7.2 动画风切换（2026-08-15）**
+用户反馈：三款写实 checkpoint（xxmix9 / juggernaut / realvis lightning）不满意，要求
+国风动画 + 日本动漫二次元风，游戏感、轻松俏皮，不要真人写实。
+
+- 模型决策：玉簪案 → **GuoFeng4 XL（国风4）**（Civitai #118009，2.5D CG 游戏国风）；
+  Sterling / Midnight / 侦探 → **Animagine XL 4.0**（Civitai #1188071，日式动漫 SDXL）；
+  均为 SDXL ε-pred，标准 KSampler 直接用。
+- 提示词全面去写实化：`NEGATIVE` 去掉 `cartoon/3d render/oversaturated`，改禁
+  `photorealistic/film photography/8k uhd`；`STYLE` 换成国风动画 / 日漫扁平插画质量标签
+  （`masterpiece, best quality, very aesthetic, absurdres, cel shading, clean lineart`）。
+- 新增 checkpoint 自动识别：`generate.mjs` 先精确匹配，再按 `CHECKPOINT_ALIASES`
+  关键词（guofeng4 / animagine）模糊匹配 ComfyUI 实际文件名，下载版本/文件名不同也不用改代码。
+- 新增 `--list-models`：列出 ComfyUI 全部 checkpoint + 两个目标模型的就位检查。
+- 修复：build-only 模式下不再尝试上传底图（离线可正常生成 workflow JSON）。
+- `comfyui/README.md` 更新为动画模型清单 + Civitai/HF 直链 + 本机已有替代
+  （iniverseMix / ghostmix 可零下载先看效果）。
+- 用户已下载：`4Guofeng4XL_v12.safetensors`（国风4 v1.2）与
+  `animagineXL40_v4Opt.safetensors`（Animagine 4.0 Opt）；配置改为实际文件名，
+  Animagine Opt 用官方参数（22 步 / CFG 5.0 / DPM++ 2M SDE / beta）。
+- 实测：沈月娥 logo+calm 用国风4 重出成功（832×1216，单张约 2.5 分钟）；
+  全量 `./comfyui/generate-all.sh --force` 已后台启动（2026-08-15 20:32）。
+- 性能调优（2026-08-15 深夜实测）：M3 18GB + 外置盘 checkpoint 全量 SDXL 过慢——
+  832×1216/24步 单张 15+ 分钟（swap）。改为 **768×1024 + 步数 18/16 +
+  Animagine 用 dpmpp_2m/karras（弃 SDE）**：模型加载后单张 55-65 秒。
+  客户端超时 5 分钟 → 15 分钟，并加"超时前最后补查历史"避免白跑。
+- ✅ 全量完成（2026-08-16 00:39）：76 张全部成功
+  （玉簪 22 / Sterling 22 / Midnight 22 / 侦探 10），768×1024 PNG，manifest 已更新。
+  注：连续跑 ~40 分钟后内存压力回升，末段单张 300 秒左右，属 M3 18GB 常态。
 
 ## v1.0.1 修复：人物关系页（2026-08-15）
 
