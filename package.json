@@ -10,5 +10,5 @@
     "validate": "node scripts/validate-cases.mjs",
     "gen:cases": "node scripts/gen-cases.mjs"
   },
-  "engines": { "node": ">=18" }
+  "engines": { "node": ">=22.5" }
 }

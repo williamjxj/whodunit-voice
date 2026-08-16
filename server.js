@@ -1,7 +1,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { randomUUID, createHash } from 'node:crypto';
 import { isR2Enabled, r2GetObject } from './comfyui/cloudflareR2/r2.mjs';
 import { initDb, isDbReady, saveSession, getBests, getStates, setState, deleteState, getLeaderboard, DB_FILE } from './data/db.mjs';
@@ -561,7 +561,14 @@ function deriveSession(pack, body) {
   return { correct, rating, cluesFound, hintsUsed, score, verdict };
 }
 
-const db = await initDb();
+let db = null;
+try {
+  db = await initDb();
+} catch (err) {
+  // Read-only filesystems (e.g. Vercel serverless) can't create data/whodunit.db.
+  // Keep serving; DB-backed endpoints return 503 (same as Node < 22.5).
+  console.warn(`DB init failed (${err.message}) — score/save endpoints will return 503`);
+}
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -1142,22 +1149,30 @@ const handler = async (req, res) => {
     sendJson(res, status, { error: err.message });
   }}
 
-const server = http.createServer(handler);
-server.listen(PORT, HOST, () => {
-  console.log(`Whodunit Voice running at http://${HOST}:${PORT}`);
-  console.log(`Model: ${MODEL} | Case packs: ${Object.keys(cases).length}`);
-  if (!API_KEY) console.warn('WARNING: DEEPSEEK_API_KEY missing - set it in .env');
-  if (DASHSCOPE_API_KEY && HAS_NATIVE_WS) console.log(`TTS: DashScope Sambert enabled (${TTS_VOICES.length} voices)`);
-  else if (DASHSCOPE_API_KEY && !HAS_NATIVE_WS) console.warn('WARNING: DASHSCOPE_API_KEY set but Node < 22 has no native WebSocket - server TTS disabled');
-  if (EDGE_TTS_ENABLED && HAS_NATIVE_WS) console.log(`TTS: Edge TTS enabled (free, ${EDGE_VOICES.length} curated voices)`);
-  if (R2_IMAGES_ENABLED) console.log('R2: /characters/* 图片从 Cloudflare R2 提供（缺失回退本地）');
-  if (isDbReady()) console.log(`DB: 用户数据（分数/进度/结果）→ ${DB_FILE}`);
-  else console.warn('WARNING: node:sqlite 不可用（需 Node >= 22.5）— 分数/存档端点将返回 503');
-  if (!DASHSCOPE_API_KEY && !(EDGE_TTS_ENABLED && HAS_NATIVE_WS)) console.warn('WARNING: no TTS provider active - browser speechSynthesis fallback only. Add DASHSCOPE_API_KEY or enable Edge TTS.');
-});
-
-if (HOST === '127.0.0.1') {
-  http.createServer(handler).listen(PORT, '::1', () => {
-    console.log('Also listening on http://[::1]:' + PORT + ' (IPv6)');
+// Listen only when run directly (node server.js). When imported as a
+// serverless module (e.g. Vercel's api/index.js), the handler is exported
+// and the platform owns the HTTP layer.
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain) {
+  const server = http.createServer(handler);
+  server.listen(PORT, HOST, () => {
+    console.log(`Whodunit Voice running at http://${HOST}:${PORT}`);
+    console.log(`Model: ${MODEL} | Case packs: ${Object.keys(cases).length}`);
+    if (!API_KEY) console.warn('WARNING: DEEPSEEK_API_KEY missing - set it in .env');
+    if (DASHSCOPE_API_KEY && HAS_NATIVE_WS) console.log(`TTS: DashScope Sambert enabled (${TTS_VOICES.length} voices)`);
+    else if (DASHSCOPE_API_KEY && !HAS_NATIVE_WS) console.warn('WARNING: DASHSCOPE_API_KEY set but Node < 22 has no native WebSocket - server TTS disabled');
+    if (EDGE_TTS_ENABLED && HAS_NATIVE_WS) console.log(`TTS: Edge TTS enabled (free, ${EDGE_VOICES.length} curated voices)`);
+    if (R2_IMAGES_ENABLED) console.log('R2: /characters/* 图片从 Cloudflare R2 提供（缺失回退本地）');
+    if (isDbReady()) console.log(`DB: 用户数据（分数/进度/结果）→ ${DB_FILE}`);
+    else console.warn('WARNING: node:sqlite 不可用（需 Node >= 22.5）— 分数/存档端点将返回 503');
+    if (!DASHSCOPE_API_KEY && !(EDGE_TTS_ENABLED && HAS_NATIVE_WS)) console.warn('WARNING: no TTS provider active - browser speechSynthesis fallback only. Add DASHSCOPE_API_KEY or enable Edge TTS.');
   });
+
+  if (HOST === '127.0.0.1') {
+    http.createServer(handler).listen(PORT, '::1', () => {
+      console.log('Also listening on http://[::1]:' + PORT + ' (IPv6)');
+    });
+  }
 }
+
+export { handler };
