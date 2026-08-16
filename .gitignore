@@ -33,3 +33,4 @@ Desktop.ini
 .playwright-mcp/
 .playwright-cli/
 __pycache__/
+public/characters/
